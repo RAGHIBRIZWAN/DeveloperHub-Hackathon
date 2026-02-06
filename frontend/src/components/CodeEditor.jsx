@@ -156,7 +156,8 @@ const CodeEditor = ({
 
   const editorOptions = {
     fontSize: editorFontSize || 14,
-    fontFamily: "'Fira Code', monospace",
+    fontFamily: "'Fira Code', 'Consolas', 'Courier New', monospace",
+    fontLigatures: false, // Disable ligatures to fix cursor positioning
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     automaticLayout: true,
@@ -165,6 +166,7 @@ const CodeEditor = ({
     lineNumbers: 'on',
     renderLineHighlight: 'all',
     cursorBlinking: 'smooth',
+    cursorSmoothCaretAnimation: 'off', // Disable smooth caret for accurate positioning
     readOnly,
     padding: { top: 16, bottom: 16 },
   };
