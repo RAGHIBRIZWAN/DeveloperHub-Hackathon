@@ -1,0 +1,152 @@
+# Judge0 Self-Hosted Docker Compose
+# ===================================
+# This sets up a complete Judge0 CE (Community Edition) instance
+# for code execution on your local machine.
+
+version: '3.8'
+
+x-logging: &default-logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # Judge0 Server - Main API service
+  judge0-server:
+    image: judge0/judge0:1.13.0
+    container_name: judge0-server
+    ports:
+      - "2358:2358"
+    privileged: true
+    <<: *default-logging
+    environment:
+      - JUDGE0_VERSION=1.13.0
+      - RAILS_ENV=production
+      - RAILS_MAX_THREADS=10
+      - SECRET_KEY_BASE=your-secret-key-base-change-in-production
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0password
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - ENABLE_WAIT_RESULT=true
+      - ENABLE_COMPILER_OPTIONS=true
+      - ALLOWED_LANGUAGES_FOR_COMPILE_OPTIONS=
+      - CALLBACKS_MAX_TRIES=3
+      - CALLBACKS_TIMEOUT=5
+      - CPU_TIME_LIMIT=5
+      - CPU_EXTRA_TIME=1
+      - WALL_TIME_LIMIT=15
+      - MEMORY_LIMIT=128000
+      - STACK_LIMIT=64000
+      - MAX_PROCESSES_AND_OR_THREADS=60
+      - ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT=false
+      - ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT=false
+      - MAX_FILE_SIZE=1024
+      - NUMBER_OF_RUNS=1
+      - REDIRECT_STDERR_TO_STDOUT=false
+      - MAINTENANCE_MODE=false
+      - ENABLE_BATCHED_SUBMISSIONS=true
+      - MAX_SUBMISSION_BATCH_SIZE=20
+      - DISALLOW_IP=
+      - ALLOW_ENABLE_NETWORK=true
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - judge0-network
+
+  # Judge0 Workers - Process submissions
+  judge0-workers:
+    image: judge0/judge0:1.13.0
+    container_name: judge0-workers
+    command: ["./scripts/workers"]
+    privileged: true
+    <<: *default-logging
+    environment:
+      - JUDGE0_VERSION=1.13.0
+      - RAILS_ENV=production
+      - RAILS_MAX_THREADS=10
+      - SECRET_KEY_BASE=your-secret-key-base-change-in-production
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0password
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - ENABLE_WAIT_RESULT=true
+      - ENABLE_COMPILER_OPTIONS=true
+      - CPU_TIME_LIMIT=5
+      - CPU_EXTRA_TIME=1
+      - WALL_TIME_LIMIT=15
+      - MEMORY_LIMIT=128000
+      - STACK_LIMIT=64000
+      - MAX_PROCESSES_AND_OR_THREADS=60
+      - MAX_FILE_SIZE=1024
+      - NUMBER_OF_RUNS=1
+      - REDIRECT_STDERR_TO_STDOUT=false
+      - MAINTENANCE_MODE=false
+      - ENABLE_BATCHED_SUBMISSIONS=true
+      - MAX_SUBMISSION_BATCH_SIZE=20
+      - ALLOW_ENABLE_NETWORK=true
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - judge0-network
+
+  # PostgreSQL Database
+  judge0-db:
+    image: postgres:15-alpine
+    container_name: judge0-db
+    <<: *default-logging
+    environment:
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0password
+    volumes:
+      - judge0-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge0 -d judge0"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - judge0-network
+
+  # Redis Cache/Queue
+  judge0-redis:
+    image: redis:7-alpine
+    container_name: judge0-redis
+    <<: *default-logging
+    command: redis-server --appendonly yes
+    volumes:
+      - judge0-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - judge0-network
+
+volumes:
+  judge0-postgres-data:
+  judge0-redis-data:
+
+networks:
+  judge0-network:
+    driver: bridge
