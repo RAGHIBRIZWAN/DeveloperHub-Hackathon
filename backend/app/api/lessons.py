@@ -467,7 +467,11 @@ async def get_module_progress(
     """
     Get user's progress broken down by module/course.
     Returns completion percentage for each module.
+    Includes both lesson completions AND solved coding problems.
     """
+    from app.models.submission import UserProblemStatus
+    from app.data.module_problems import get_coding_problems_by_module
+    
     module_ids = [
         "programming-fundamentals",
         "oop",
@@ -483,28 +487,43 @@ async def get_module_progress(
             {"course_id": module_id, "is_published": True}
         ).count()
         
-        if total_lessons == 0:
+        # Count total coding problems for this module
+        coding_problems = get_coding_problems_by_module(module_id)
+        total_coding = len(coding_problems)
+        
+        # Total items = lessons + coding problems
+        total_items = total_lessons + total_coding
+        
+        if total_items == 0:
             result[module_id] = {"total": 0, "completed": 0, "progress": 0}
             continue
         
-        # Get lesson IDs for this module
+        # Count completed lessons
         lessons = await Lesson.find(
             {"course_id": module_id, "is_published": True}
         ).to_list()
         lesson_ids = [str(l.id) for l in lessons]
         
-        # Count completed progress records for these lessons
-        completed = await LessonProgress.find({
+        completed_lessons = await LessonProgress.find({
             "user_id": current_user["user_id"],
             "lesson_id": {"$in": lesson_ids},
             "status": "completed"
         }).count()
         
-        progress_pct = round((completed / total_lessons) * 100) if total_lessons > 0 else 0
+        # Count solved coding problems for this module
+        coding_problem_ids = [p["id"] for p in coding_problems]
+        completed_coding = await UserProblemStatus.find({
+            "user_id": current_user["user_id"],
+            "problem_id": {"$in": coding_problem_ids},
+            "is_solved": True
+        }).count()
+        
+        total_completed = completed_lessons + completed_coding
+        progress_pct = round((total_completed / total_items) * 100) if total_items > 0 else 0
         
         result[module_id] = {
-            "total": total_lessons,
-            "completed": completed,
+            "total": total_items,
+            "completed": total_completed,
             "progress": progress_pct
         }
     

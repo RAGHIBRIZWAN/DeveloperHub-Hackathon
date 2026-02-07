@@ -37,24 +37,24 @@ import { useGamificationStore } from '../stores/gamificationStore';
 
 // Difficulty color mapping
 const getDifficultyColor = (rating) => {
-  if (!rating) return 'bg-gray-500';
-  if (rating < 1200) return 'bg-green-500';
+  if (!rating) return 'bg-slate-500';
+  if (rating < 1200) return 'bg-emerald-500';
   if (rating < 1400) return 'bg-cyan-500';
   if (rating < 1600) return 'bg-blue-500';
   if (rating < 1900) return 'bg-purple-500';
-  if (rating < 2100) return 'bg-yellow-500';
+  if (rating < 2100) return 'bg-amber-500';
   if (rating < 2400) return 'bg-orange-500';
-  return 'bg-red-500';
+  return 'bg-rose-500';
 };
 
 const getDifficultyLabel = (difficulty) => {
   const labels = {
-    'easy': { text: 'Easy', color: 'text-green-400 bg-green-500/20' },
-    'medium': { text: 'Medium', color: 'text-yellow-400 bg-yellow-500/20' },
-    'hard': { text: 'Hard', color: 'text-orange-400 bg-orange-500/20' },
-    'expert': { text: 'Expert', color: 'text-red-400 bg-red-500/20' }
+    'easy': { text: 'Easy', color: 'text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.12)]' },
+    'medium': { text: 'Medium', color: 'text-amber-300 bg-amber-500/15 border border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.12)]' },
+    'hard': { text: 'Hard', color: 'text-orange-300 bg-orange-500/15 border border-orange-500/20 shadow-[0_0_12px_rgba(249,115,22,0.12)]' },
+    'expert': { text: 'Expert', color: 'text-rose-300 bg-rose-500/15 border border-rose-500/20 shadow-[0_0_12px_rgba(244,63,94,0.12)]' }
   };
-  return labels[difficulty] || { text: difficulty, color: 'text-gray-400 bg-gray-500/20' };
+  return labels[difficulty] || { text: difficulty, color: 'text-slate-400 bg-white/[0.04] border border-white/[0.06]' };
 };
 
 // Language configurations
@@ -227,11 +227,9 @@ export default function Practice() {
     queryKey: ['problem-detail', selectedProblem?.id, activeCategory],
     queryFn: async () => {
       if (activeCategory === 'cp') {
-        // CP problems use different endpoint
         const response = await api.get(`/problems/cp/problems/${selectedProblem.id}`);
         return response.data;
       } else {
-        // Module coding endpoint
         const response = await api.get(`/problems/modules/coding/${selectedProblem.id}`);
         return response.data;
       }
@@ -266,7 +264,6 @@ export default function Practice() {
   // Submit solution mutation
   const submitMutation = useMutation({
     mutationFn: async () => {
-      // Use different endpoint based on problem type
       const endpoint = activeCategory === 'cp' 
         ? `/problems/submit/${selectedProblem.id}`
         : `/problems/modules/submit/${selectedProblem.id}`;
@@ -281,7 +278,6 @@ export default function Practice() {
     onSuccess: (data) => {
       if (data.verdict === 'AC') {
         toast.success(`🎉 ${data.verdict_message}`);
-        // Award XP and coins from backend response (skipped if already solved)
         if (data.xp_earned && !data.already_solved) {
           addXP(data.xp_earned);
           addCoins(data.coins_earned || 0);
@@ -293,24 +289,20 @@ export default function Practice() {
         } else if (data.already_solved) {
           toast(`✅ Already solved — no duplicate XP awarded`, { icon: 'ℹ️' });
         }
-        // Refresh solved problems list
         queryClient.invalidateQueries({ queryKey: ['solved-problems'] });
       } else {
         toast.error(`${data.verdict}: ${data.verdict_message}`);
       }
       
-      // Store AI suggestions if available
       if (data.ai_suggestions) {
         setAiSuggestions(data.ai_suggestions);
       }
       
-      // Build detailed output
       let resultOutput = `Verdict: ${data.verdict}\n`;
       resultOutput += `${data.verdict_message}\n`;
       resultOutput += `Passed: ${data.passed_tests}/${data.total_tests} tests\n`;
       resultOutput += `Time: ${data.execution_time_ms}ms\n\n`;
       
-      // Show AI Guidance if present
       if (data.ai_guidance) {
         resultOutput += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
         resultOutput += '🤖 AI TUTOR GUIDANCE\n';
@@ -318,7 +310,6 @@ export default function Practice() {
         resultOutput += data.ai_guidance + '\n\n';
       }
       
-      // Show OOP validation feedback if present
       if (data.oop_validation) {
         resultOutput += '--- OOP Validation ---\n';
         resultOutput += `Status: ${data.oop_validation.valid ? '✓ Valid OOP' : '✗ Invalid OOP'}\n`;
@@ -383,50 +374,85 @@ export default function Practice() {
     setInput(problemData?.examples?.[0]?.input || '');
   };
 
-  // If a problem is selected, show the problem solving view
+  // ─── PROBLEM SOLVER VIEW ───────────────────────────────────────────
   if (selectedProblem) {
     return (
-      <div className={`min-h-screen bg-gray-900 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
-        <div className="flex h-screen">
-          {/* Problem Description Panel */}
-          <div className={`${isFullscreen ? 'w-2/5' : 'w-1/2'} border-r border-gray-700 overflow-auto`}>
-            <div className="p-6">
-              {/* Back Button */}
+      <div className={`h-screen flex flex-col bg-[#07080f] ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
+        {/* Ambient background glow */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-indigo-600/[0.04] rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[350px] bg-violet-600/[0.04] rounded-full blur-[120px]" />
+        </div>
+
+        {/* Top Header Bar */}
+        <div className="relative flex-shrink-0">
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+          <div className="bg-white/[0.04] backdrop-blur-2xl border-b border-white/[0.06] px-5 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setSelectedProblem(null)}
-                className="flex items-center gap-2 text-gray-400 hover:text-white mb-4"
+                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
               >
-                <ArrowLeft size={20} />
-                Back to Problems
+                <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+                <span className="text-sm">Back</span>
               </button>
-              
+              <div className="w-px h-5 bg-white/[0.08]" />
+              <h2 className="text-white font-semibold text-sm truncate max-w-[300px]">
+                {selectedProblem.name}
+              </h2>
+              {problemData && (
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyLabel(problemData.difficulty).color}`}>
+                  {getDifficultyLabel(problemData.difficulty).text}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all"
+                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              >
+                {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Split Pane */}
+        <div className="flex flex-1 min-h-0">
+          {/* ── Problem Description Panel ────────────────────────── */}
+          <div className={`${isFullscreen ? 'w-2/5' : 'w-1/2'} border-r border-white/[0.06] overflow-auto`}>
+            <div className="p-6">
               {problemLoading ? (
                 <div className="flex items-center justify-center py-20">
-                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
                 </div>
               ) : problemData ? (
-                <div>
+                <div className="space-y-6">
                   {/* Problem Header */}
-                  <div className="mb-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className={`px-2 py-1 rounded text-sm ${getDifficultyLabel(problemData.difficulty).color}`}>
+                  <div>
+                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyLabel(problemData.difficulty).color}`}>
                         {getDifficultyLabel(problemData.difficulty).text}
                       </span>
                       {problemData.rating && (
-                        <span className="text-gray-400 text-sm">Rating: {problemData.rating}</span>
+                        <span className="text-slate-500 text-sm flex items-center gap-1.5">
+                          <div className={`w-2 h-2 rounded-full ${getDifficultyColor(problemData.rating)}`} />
+                          Rating: {problemData.rating}
+                        </span>
                       )}
                       {activeCategory === 'oop' && (
-                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                        <span className="px-2.5 py-1 bg-purple-500/10 text-purple-300 rounded-full text-xs border border-purple-500/20">
                           OOP Required
                         </span>
                       )}
                     </div>
-                    <h1 className="text-2xl font-bold text-white mb-2">
+                    <h1 className="text-2xl font-bold text-white mb-3">
                       {problemData.name}
                     </h1>
                     <div className="flex flex-wrap gap-2">
                       {problemData.tags?.map(tag => (
-                        <span key={tag} className="px-2 py-1 bg-gray-700/50 text-gray-400 rounded text-xs">
+                        <span key={tag} className="px-2.5 py-1 bg-white/[0.04] text-slate-400 rounded-xl text-xs border border-white/[0.06]">
                           {tag}
                         </span>
                       ))}
@@ -435,12 +461,12 @@ export default function Practice() {
 
                   {/* OOP Notice */}
                   {activeCategory === 'oop' && (
-                    <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                      <h4 className="text-purple-400 font-medium mb-2 flex items-center gap-2">
+                    <div className="p-4 bg-purple-500/[0.06] border border-purple-500/20 rounded-xl backdrop-blur-sm">
+                      <h4 className="text-purple-300 font-medium mb-2 flex items-center gap-2">
                         <Cpu size={18} />
                         OOP Requirements
                       </h4>
-                      <p className="text-gray-300 text-sm">
+                      <p className="text-slate-400 text-sm leading-relaxed">
                         Your solution must use proper Object-Oriented Programming concepts as described in the problem.
                         The code will be validated by AI to ensure it follows OOP principles (classes, methods, inheritance, etc.).
                         Even if the output is correct, solutions not following OOP requirements will fail.
@@ -449,50 +475,73 @@ export default function Practice() {
                   )}
 
                   {/* Problem Description */}
-                  <div className="prose prose-invert max-w-none">
-                    <h3 className="text-lg font-semibold text-white mb-2">Description</h3>
-                    <div className="text-gray-300 whitespace-pre-wrap mb-6">
-                      {problemData.description}
+                  <div className="space-y-5">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <div className="w-1 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-violet-500" />
+                        Description
+                      </h3>
+                      <div className="text-slate-300 whitespace-pre-wrap leading-relaxed text-[15px]">
+                        {problemData.description}
+                      </div>
                     </div>
 
-                    <h3 className="text-lg font-semibold text-white mb-2">Input Format</h3>
-                    <div className="text-gray-300 whitespace-pre-wrap mb-6">
-                      {problemData.input_format}
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <div className="w-1 h-4 rounded-full bg-gradient-to-b from-cyan-500 to-blue-500" />
+                        Input Format
+                      </h3>
+                      <div className="text-slate-300 whitespace-pre-wrap leading-relaxed text-[15px]">
+                        {problemData.input_format}
+                      </div>
                     </div>
 
-                    <h3 className="text-lg font-semibold text-white mb-2">Output Format</h3>
-                    <div className="text-gray-300 whitespace-pre-wrap mb-6">
-                      {problemData.output_format}
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <div className="w-1 h-4 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
+                        Output Format
+                      </h3>
+                      <div className="text-slate-300 whitespace-pre-wrap leading-relaxed text-[15px]">
+                        {problemData.output_format}
+                      </div>
                     </div>
 
                     {/* Examples */}
-                    <h3 className="text-lg font-semibold text-white mb-2">Examples</h3>
-                    {problemData.examples?.map((example, idx) => (
-                      <div key={idx} className="mb-4 bg-gray-800/50 rounded-lg p-4">
-                        <div className="mb-2">
-                          <span className="text-gray-400 text-sm">Input:</span>
-                          <pre className="bg-gray-900 p-2 rounded mt-1 text-gray-200 text-sm overflow-x-auto">
-                            {example.input}
-                          </pre>
-                        </div>
-                        <div className="mb-2">
-                          <span className="text-gray-400 text-sm">Output:</span>
-                          <pre className="bg-gray-900 p-2 rounded mt-1 text-gray-200 text-sm overflow-x-auto">
-                            {example.output}
-                          </pre>
-                        </div>
-                        {example.explanation && (
-                          <div className="text-gray-400 text-sm mt-2">
-                            <span className="font-medium">Explanation:</span> {example.explanation}
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <div className="w-1 h-4 rounded-full bg-gradient-to-b from-amber-500 to-orange-500" />
+                        Examples
+                      </h3>
+                      {problemData.examples?.map((example, idx) => (
+                        <div key={idx} className="mb-4 bg-white/[0.02] rounded-xl p-4 border border-white/[0.06]">
+                          <div className="mb-3">
+                            <span className="text-slate-500 text-xs uppercase tracking-wider font-medium">Input:</span>
+                            <pre className="bg-black/30 p-3 rounded-xl mt-1.5 text-slate-200 text-sm overflow-x-auto font-mono border border-white/[0.04]">
+                              {example.input}
+                            </pre>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <div className="mb-2">
+                            <span className="text-slate-500 text-xs uppercase tracking-wider font-medium">Output:</span>
+                            <pre className="bg-black/30 p-3 rounded-xl mt-1.5 text-slate-200 text-sm overflow-x-auto font-mono border border-white/[0.04]">
+                              {example.output}
+                            </pre>
+                          </div>
+                          {example.explanation && (
+                            <div className="text-slate-400 text-sm mt-3 pt-3 border-t border-white/[0.04]">
+                              <span className="font-medium text-slate-300">Explanation:</span> {example.explanation}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
 
                     {problemData.solution_hint && (
-                      <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                        <h4 className="text-blue-400 font-medium mb-2">💡 Hint</h4>
-                        <p className="text-gray-300 text-sm">{problemData.solution_hint}</p>
+                      <div className="p-4 bg-indigo-500/[0.06] border border-indigo-500/20 rounded-xl backdrop-blur-sm">
+                        <h4 className="text-indigo-300 font-medium mb-2 flex items-center gap-2">
+                          <Lightbulb size={16} className="text-indigo-400" />
+                          Hint
+                        </h4>
+                        <p className="text-slate-400 text-sm leading-relaxed">{problemData.solution_hint}</p>
                       </div>
                     )}
                   </div>
@@ -501,57 +550,53 @@ export default function Practice() {
             </div>
           </div>
 
-          {/* Code Editor Panel */}
+          {/* ── Code Editor Panel ────────────────────────────────── */}
           <div className={`${isFullscreen ? 'w-3/5' : 'w-1/2'} flex flex-col`}>
             {/* Editor Toolbar */}
-            <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between px-4 py-2 bg-white/[0.02] border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
                 {/* Language Selector */}
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:border-blue-500"
+                  className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5 text-white text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all cursor-pointer appearance-none pr-8"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
                 >
                   {Object.entries(LANGUAGE_CONFIG).map(([key, config]) => (
-                    <option key={key} value={key}>
+                    <option key={key} value={key} className="bg-[#0d0f1a]">
                       {config.icon} {config.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={handleCopy}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                  className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all"
                   title="Copy code"
                 >
-                  {copied ? <Check size={18} /> : <Copy size={18} />}
+                  {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
                 </button>
                 <button
                   onClick={handleReset}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                  className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all"
                   title="Reset code"
                 >
-                  <RotateCcw size={18} />
+                  <RotateCcw size={16} />
                 </button>
-                <button
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
-                  title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                >
-                  {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                </button>
+                
+                <div className="w-px h-5 bg-white/[0.06] mx-1" />
                 
                 <button
                   onClick={() => runCodeMutation.mutate()}
                   disabled={runCodeMutation.isPending || !code.trim()}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-500 disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 rounded-xl hover:bg-emerald-500/25 hover:border-emerald-500/40 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm font-medium"
                 >
                   {runCodeMutation.isPending ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={14} className="animate-spin" />
                   ) : (
-                    <Play size={16} />
+                    <Play size={14} />
                   )}
                   Run
                 </button>
@@ -559,12 +604,12 @@ export default function Practice() {
                 <button
                   onClick={() => submitMutation.mutate()}
                   disabled={submitMutation.isPending || !code.trim()}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm font-medium shadow-lg shadow-indigo-500/20"
                 >
                   {submitMutation.isPending ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={14} className="animate-spin" />
                   ) : (
-                    <Send size={16} />
+                    <Send size={14} />
                   )}
                   Submit
                 </button>
@@ -572,51 +617,60 @@ export default function Practice() {
             </div>
 
             {/* Monaco Editor */}
-            <div className="flex-1">
-              <Editor
-                height="100%"
-                language={language === 'cpp' ? 'cpp' : language}
-                theme="vs-dark"
-                value={code}
-                onChange={(value) => setCode(value || '')}
-                options={{
-                  fontSize: 14,
-                  fontFamily: "'Fira Code', monospace",
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  tabSize: 4,
-                  wordWrap: 'on',
-                  lineNumbers: 'on',
-                  padding: { top: 16, bottom: 16 },
-                }}
-              />
+            <div className="flex-1 relative">
+              <div className="absolute inset-0">
+                <Editor
+                  height="100%"
+                  language={language === 'cpp' ? 'cpp' : language}
+                  theme="vs-dark"
+                  value={code}
+                  onChange={(value) => setCode(value || '')}
+                  options={{
+                    fontSize: 14,
+                    fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    tabSize: 4,
+                    wordWrap: 'on',
+                    lineNumbers: 'on',
+                    padding: { top: 16, bottom: 16 },
+                    renderLineHighlight: 'gutter',
+                  }}
+                />
+              </div>
             </div>
 
             {/* I/O Panel */}
-            <div className="h-48 border-t border-gray-700">
-              <div className="flex border-b border-gray-700 justify-between">
+            <div className="h-48 border-t border-white/[0.06] bg-white/[0.01]">
+              <div className="flex border-b border-white/[0.06] justify-between">
                 <div className="flex">
                   <button
                     onClick={() => setActiveTab('output')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all relative ${
                       activeTab === 'output'
-                        ? 'text-white border-b-2 border-blue-500 bg-gray-800'
-                        : 'text-gray-400 hover:text-white'
+                        ? 'text-white'
+                        : 'text-slate-500 hover:text-slate-300'
                     }`}
                   >
-                    <Terminal size={16} />
+                    <Terminal size={14} />
                     Output
+                    {activeTab === 'output' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 to-violet-500" />
+                    )}
                   </button>
                   <button
                     onClick={() => setActiveTab('input')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all relative ${
                       activeTab === 'input'
-                        ? 'text-white border-b-2 border-blue-500 bg-gray-800'
-                        : 'text-gray-400 hover:text-white'
+                        ? 'text-white'
+                        : 'text-slate-500 hover:text-slate-300'
                     }`}
                   >
                     Input
+                    {activeTab === 'input' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 to-violet-500" />
+                    )}
                   </button>
                 </div>
                 
@@ -624,101 +678,106 @@ export default function Practice() {
                 {aiSuggestions && (
                   <button
                     onClick={() => setShowAiModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 transition-colors animate-pulse"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-300 hover:text-amber-200 hover:bg-amber-500/[0.06] transition-all animate-pulse"
                   >
-                    <Lightbulb size={16} />
+                    <Lightbulb size={14} />
                     AI Suggestions
-                    <Sparkles size={14} />
+                    <Sparkles size={12} />
                   </button>
                 )}
               </div>
               <div className="h-36 overflow-auto">
                 {activeTab === 'output' ? (
-                  <pre className={`p-4 text-sm font-mono whitespace-pre-wrap ${
-                    output.includes('Error') || output.includes('✗') ? 'text-red-400' : 
-                    output.includes('✓') || output.includes('Accepted') ? 'text-green-400' : 'text-gray-300'
+                  <pre className={`p-4 text-sm font-mono whitespace-pre-wrap leading-relaxed ${
+                    output.includes('Error') || output.includes('✗') ? 'text-rose-400' : 
+                    output.includes('✓') || output.includes('Accepted') ? 'text-emerald-400' : 'text-slate-300'
                   }`}>
-                    {output || 'Run or submit your code to see output...'}
+                    {output || (
+                      <span className="text-slate-600 italic">Run or submit your code to see output...</span>
+                    )}
                   </pre>
                 ) : (
                   <textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Enter input for your program..."
-                    className="w-full h-full p-4 bg-transparent text-white font-mono text-sm resize-none focus:outline-none"
+                    className="w-full h-full p-4 bg-transparent text-white font-mono text-sm resize-none focus:outline-none placeholder-slate-600"
                   />
                 )}
               </div>
             </div>
             
-            {/* AI Suggestions Modal */}
+            {/* ── AI Suggestions Modal ────────────────────────────── */}
             <AnimatePresence>
               {showAiModal && aiSuggestions && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-2xl z-50 flex items-center justify-center p-4"
                   onClick={() => setShowAiModal(false)}
                 >
                   <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
+                    initial={{ scale: 0.92, opacity: 0, y: 20 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.92, opacity: 0, y: 20 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-gray-900 rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden border border-gray-700 shadow-2xl"
+                    className="bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06] rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden shadow-2xl shadow-black/40"
                   >
                     {/* Modal Header */}
-                    <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-b border-gray-700 p-6">
-                      <div className="flex items-center justify-between">
+                    <div className="relative border-b border-white/[0.06] p-6">
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/[0.06] to-orange-500/[0.06]" />
+                      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+                      <div className="relative flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="p-3 bg-yellow-500/20 rounded-xl">
-                            <Lightbulb className="w-6 h-6 text-yellow-400" />
+                          <div className="p-2.5 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                            <Lightbulb className="w-5 h-5 text-amber-400" />
                           </div>
                           <div>
-                            <h2 className="text-xl font-bold text-white">AI Code Review & Suggestions</h2>
-                            <p className="text-gray-400 text-sm">Powered by Groq LLM</p>
+                            <h2 className="text-lg font-bold text-white">AI Code Review & Suggestions</h2>
+                            <p className="text-slate-500 text-sm">Powered by Groq LLM</p>
                           </div>
                         </div>
                         <button
                           onClick={() => setShowAiModal(false)}
-                          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                          className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all"
                         >
-                          <X size={20} />
+                          <X size={18} />
                         </button>
                       </div>
                     </div>
                     
                     {/* Modal Content */}
-                    <div className="p-6 overflow-y-auto max-h-[calc(85vh-120px)] space-y-6">
+                    <div className="p-6 overflow-y-auto max-h-[calc(85vh-120px)] space-y-4">
                       {/* Code Review */}
-                      <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                      <div className="bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">
                         <div className="flex items-center gap-2 mb-3">
-                          <Code className="w-5 h-5 text-blue-400" />
-                          <h3 className="font-semibold text-white">Code Review</h3>
+                          <Code className="w-4 h-4 text-blue-400" />
+                          <h3 className="font-semibold text-white text-sm">Code Review</h3>
                         </div>
-                        <p className="text-gray-300 leading-relaxed">{aiSuggestions.code_review}</p>
+                        <p className="text-slate-300 leading-relaxed text-sm">{aiSuggestions.code_review}</p>
                       </div>
                       
                       {/* Complexity Analysis */}
-                      <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                      <div className="bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">
                         <div className="flex items-center gap-2 mb-3">
-                          <Zap className="w-5 h-5 text-purple-400" />
-                          <h3 className="font-semibold text-white">Complexity Analysis</h3>
+                          <Zap className="w-4 h-4 text-purple-400" />
+                          <h3 className="font-semibold text-white text-sm">Complexity Analysis</h3>
                         </div>
-                        <p className="text-gray-300 font-mono text-sm">{aiSuggestions.complexity_analysis}</p>
+                        <p className="text-slate-300 font-mono text-sm">{aiSuggestions.complexity_analysis}</p>
                       </div>
                       
                       {/* Improvements */}
-                      <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                      <div className="bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">
                         <div className="flex items-center gap-2 mb-3">
-                          <TrendingUp className="w-5 h-5 text-green-400" />
-                          <h3 className="font-semibold text-white">Suggested Improvements</h3>
+                          <TrendingUp className="w-4 h-4 text-emerald-400" />
+                          <h3 className="font-semibold text-white text-sm">Suggested Improvements</h3>
                         </div>
                         <ul className="space-y-2">
                           {aiSuggestions.improvements?.map((improvement, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-gray-300">
-                              <span className="text-green-400 mt-1">•</span>
+                            <li key={idx} className="flex items-start gap-2 text-slate-300 text-sm">
+                              <span className="text-emerald-400 mt-0.5">•</span>
                               <span>{improvement}</span>
                             </li>
                           ))}
@@ -726,15 +785,15 @@ export default function Practice() {
                       </div>
                       
                       {/* Hints */}
-                      <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-500/30">
+                      <div className="bg-amber-500/[0.04] rounded-xl p-4 border border-amber-500/15">
                         <div className="flex items-center gap-2 mb-3">
-                          <Target className="w-5 h-5 text-yellow-400" />
-                          <h3 className="font-semibold text-white">Hints & Tips</h3>
+                          <Target className="w-4 h-4 text-amber-400" />
+                          <h3 className="font-semibold text-white text-sm">Hints & Tips</h3>
                         </div>
                         <ul className="space-y-2">
                           {aiSuggestions.hints?.map((hint, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-gray-300">
-                              <span className="text-yellow-400 mt-1">💡</span>
+                            <li key={idx} className="flex items-start gap-2 text-slate-300 text-sm">
+                              <span className="text-amber-400 mt-0.5">💡</span>
                               <span>{hint}</span>
                             </li>
                           ))}
@@ -742,15 +801,15 @@ export default function Practice() {
                       </div>
                       
                       {/* Best Practices */}
-                      <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                      <div className="bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">
                         <div className="flex items-center gap-2 mb-3">
-                          <Sparkles className="w-5 h-5 text-cyan-400" />
-                          <h3 className="font-semibold text-white">Best Practices</h3>
+                          <Sparkles className="w-4 h-4 text-cyan-400" />
+                          <h3 className="font-semibold text-white text-sm">Best Practices</h3>
                         </div>
                         <ul className="space-y-2">
                           {aiSuggestions.best_practices?.map((practice, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-gray-300">
-                              <span className="text-cyan-400 mt-1">✓</span>
+                            <li key={idx} className="flex items-start gap-2 text-slate-300 text-sm">
+                              <span className="text-cyan-400 mt-0.5">✓</span>
                               <span>{practice}</span>
                             </li>
                           ))}
@@ -767,381 +826,421 @@ export default function Practice() {
     );
   }
 
-  // Determine current problems and loading state
+  // ─── PROBLEM LIST VIEW ─────────────────────────────────────────────
   const currentProblems = activeCategory === 'cp' ? data?.problems : moduleProblems?.problems;
   const currentLoading = activeCategory === 'cp' ? isLoading : moduleLoading;
 
-  // Problem list view
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-            <Code className="text-blue-400" />
-            Practice Problems
-          </h1>
-          <p className="text-gray-400">
-            Master programming through hands-on coding challenges
-          </p>
-        </motion.div>
+    <div className="h-screen flex flex-col bg-[#07080f] overflow-hidden">
+      {/* Ambient background glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-0 left-1/3 w-[700px] h-[500px] bg-indigo-600/[0.03] rounded-full blur-[140px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[400px] bg-violet-600/[0.03] rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-0 w-[400px] h-[300px] bg-cyan-600/[0.02] rounded-full blur-[100px]" />
+      </div>
 
-        {/* Category Tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <div className="flex flex-wrap gap-3">
-            {/* CP Tab */}
-            <button
-              onClick={() => handleCategoryChange('cp')}
-              className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all ${
-                activeCategory === 'cp'
-                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg shadow-yellow-500/20'
-                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700 hover:text-white border border-gray-700'
-              }`}
+      {/* Top Header */}
+      <div className="relative flex-shrink-0">
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+        <div className="bg-white/[0.04] backdrop-blur-2xl border-b border-white/[0.06]">
+          <div className="max-w-[1600px] mx-auto px-6 py-5">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between"
             >
-              <Trophy size={20} />
-              <div className="text-left">
-                <div className="font-medium">Competitive Programming</div>
-                <div className="text-xs opacity-80">Codeforces-style problems</div>
-              </div>
-            </button>
-
-            {/* Module Tabs */}
-            {Object.entries(MODULE_INFO).map(([key, info]) => {
-              const Icon = info.icon;
-              return (
-                <button
-                  key={key}
-                  onClick={() => handleCategoryChange(key)}
-                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all ${
-                    activeCategory === key
-                      ? `bg-gradient-to-r ${info.color} text-white shadow-lg`
-                      : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700 hover:text-white border border-gray-700'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <div className="text-left">
-                    <div className="font-medium">{info.name}</div>
-                    <div className="text-xs opacity-80">{info.description.substring(0, 30)}...</div>
+              <div>
+                <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-xl border border-white/[0.06]">
+                    <Code size={20} className="text-indigo-400" />
                   </div>
-                </button>
-              );
-            })}
-          </div>
-        </motion.div>
-
-        {/* Search and Filter Bar (only for CP) */}
-        {activeCategory === 'cp' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 mb-6 border border-gray-700/50"
-          >
-            <div className="flex flex-wrap gap-4 items-center">
-              {/* Search */}
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search problems by name..."
-                    className="w-full pl-10 pr-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
+                  Practice Problems
+                </h1>
+                <p className="text-slate-500 text-sm mt-1 ml-[52px]">
+                  Master programming through hands-on coding challenges
+                </p>
               </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
 
-              {/* Filter Toggle */}
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-[1600px] mx-auto px-6 py-6">
+
+          {/* Category Tabs */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-6"
+          >
+            <div className="flex flex-wrap gap-3">
+              {/* CP Tab */}
               <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
-                  showFilters || selectedDifficulty || ratingMin || ratingMax
-                    ? 'bg-primary/20 border-primary text-primary'
-                    : 'bg-gray-900/50 border-gray-700 text-gray-400 hover:text-white'
+                onClick={() => handleCategoryChange('cp')}
+                className={`relative flex items-center gap-3 px-5 py-3 rounded-xl transition-all group ${
+                  activeCategory === 'cp'
+                    ? 'bg-white/[0.10] text-white shadow-lg shadow-amber-500/10'
+                    : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.06] hover:text-slate-200 border border-white/[0.06]'
                 }`}
               >
-                <SlidersHorizontal className="w-5 h-5" />
-                <span>Filters</span>
+                {activeCategory === 'cp' && (
+                  <div className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-gradient-to-r from-amber-500 to-orange-500" />
+                )}
+                <Trophy size={18} className={activeCategory === 'cp' ? 'text-amber-400' : ''} />
+                <div className="text-left">
+                  <div className="font-medium text-sm">Competitive Programming</div>
+                  <div className="text-xs opacity-60">Codeforces-style problems</div>
+                </div>
               </button>
 
-              {/* Clear Filters */}
-              {(selectedDifficulty || ratingMin || ratingMax || search) && (
+              {/* Module Tabs */}
+              {Object.entries(MODULE_INFO).map(([key, info]) => {
+                const Icon = info.icon;
+                const isActive = activeCategory === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleCategoryChange(key)}
+                    className={`relative flex items-center gap-3 px-5 py-3 rounded-xl transition-all group ${
+                      isActive
+                        ? 'bg-white/[0.10] text-white shadow-lg'
+                        : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.06] hover:text-slate-200 border border-white/[0.06]'
+                    }`}
+                  >
+                    {isActive && (
+                      <div className={`absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-gradient-to-r ${info.color}`} />
+                    )}
+                    <Icon size={18} />
+                    <div className="text-left">
+                      <div className="font-medium text-sm">{info.name}</div>
+                      <div className="text-xs opacity-60">{info.description.substring(0, 30)}...</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          {/* Search and Filter Bar (only for CP) */}
+          {activeCategory === 'cp' && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white/[0.04] backdrop-blur-2xl rounded-xl p-4 mb-6 border border-white/[0.06]"
+            >
+              <div className="flex flex-wrap gap-4 items-center">
+                {/* Search */}
+                <div className="flex-1 min-w-[200px]">
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search problems by name..."
+                      className="w-full pl-10 pr-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/40 outline-none transition-all text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Filter Toggle */}
                 <button
-                  onClick={clearFilters}
-                  className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 hover:text-red-300 transition-colors"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm transition-all ${
+                    showFilters || selectedDifficulty || ratingMin || ratingMax
+                      ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300'
+                      : 'bg-white/[0.04] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                  }`}
                 >
-                  <X className="w-5 h-5" />
-                  <span>Clear</span>
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span>Filters</span>
+                </button>
+
+                {/* Clear Filters */}
+                {(selectedDifficulty || ratingMin || ratingMax || search) && (
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm bg-rose-500/10 border border-rose-500/25 text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Clear</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Expanded Filters */}
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-4 mt-4 border-t border-white/[0.06]">
+                      {/* Rating Range */}
+                      <div className="mb-4">
+                        <label className="text-xs text-slate-500 mb-2 block uppercase tracking-wider font-medium">Rating Range</label>
+                        <div className="flex gap-4 items-center">
+                          <input
+                            type="number"
+                            value={ratingMin}
+                            onChange={(e) => { setRatingMin(e.target.value); setPage(1); }}
+                            placeholder="Min (800)"
+                            min="800"
+                            max="3500"
+                            step="100"
+                            className="w-32 px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-600 text-sm outline-none focus:border-indigo-500/40 transition-all"
+                          />
+                          <span className="text-slate-600 text-sm">to</span>
+                          <input
+                            type="number"
+                            value={ratingMax}
+                            onChange={(e) => { setRatingMax(e.target.value); setPage(1); }}
+                            placeholder="Max (3500)"
+                            min="800"
+                            max="3500"
+                            step="100"
+                            className="w-32 px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-600 text-sm outline-none focus:border-indigo-500/40 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Difficulty */}
+                      <div>
+                        <label className="text-xs text-slate-500 mb-2 block uppercase tracking-wider font-medium">Difficulty</label>
+                        <div className="flex flex-wrap gap-2">
+                          {['easy', 'medium', 'hard', 'expert'].map(diff => (
+                            <button
+                              key={diff}
+                              onClick={() => {
+                                setSelectedDifficulty(selectedDifficulty === diff ? '' : diff);
+                                setPage(1);
+                              }}
+                              className={`px-4 py-2 rounded-xl text-sm transition-all capitalize ${
+                                selectedDifficulty === diff
+                                  ? getDifficultyLabel(diff).color
+                                  : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] border border-white/[0.06]'
+                              }`}
+                            >
+                              {diff}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+
+          {/* Module Info Banner (for module categories) */}
+          {activeCategory !== 'cp' && MODULE_INFO[activeCategory] && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-6 relative overflow-hidden rounded-xl border border-white/[0.06]"
+            >
+              <div className={`absolute inset-0 bg-gradient-to-r ${MODULE_INFO[activeCategory].color} opacity-[0.08]`} />
+              <div className="relative p-5">
+                <div className="flex items-start gap-4">
+                  {(() => {
+                    const Icon = MODULE_INFO[activeCategory].icon;
+                    return (
+                      <div className="p-2.5 bg-white/[0.06] rounded-xl border border-white/[0.08]">
+                        <Icon size={24} className="text-white/80" />
+                      </div>
+                    );
+                  })()}
+                  <div>
+                    <h2 className="text-lg font-bold text-white mb-1">
+                      {MODULE_INFO[activeCategory].name}
+                    </h2>
+                    <p className="text-slate-400 text-sm">
+                      {MODULE_INFO[activeCategory].description}
+                    </p>
+                    {activeCategory === 'oop' && (
+                      <p className="text-slate-300 text-xs mt-2 bg-white/[0.06] px-3 py-1.5 rounded-xl inline-block border border-white/[0.06]">
+                        ⚠️ Solutions must follow proper OOP principles
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Results Info */}
+          {activeCategory === 'cp' && data && (
+            <div className="text-slate-500 text-sm mb-4">
+              Showing {((page - 1) * 20) + 1}-{Math.min(page * 20, data.total)} of {data.total} problems
+            </div>
+          )}
+
+          {activeCategory !== 'cp' && moduleProblems && (
+            <div className="text-slate-500 text-sm mb-4">
+              {moduleProblems.total || moduleProblems.problems?.length || 0} problems available
+            </div>
+          )}
+
+          {/* Problems List */}
+          {currentLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+            </div>
+          ) : (activeCategory === 'cp' && error) ? (
+            <div className="bg-rose-500/[0.06] border border-rose-500/20 rounded-xl p-8 text-center backdrop-blur-sm">
+              <p className="text-rose-400">Failed to load problems. Please try again later.</p>
+            </div>
+          ) : !currentProblems?.length ? (
+            <div className="bg-white/[0.04] rounded-xl p-12 text-center border border-white/[0.06] backdrop-blur-sm">
+              <div className="p-3 bg-white/[0.04] rounded-xl inline-block mb-4">
+                <Search className="w-8 h-8 text-slate-600" />
+              </div>
+              <p className="text-slate-400">No problems found matching your criteria.</p>
+              {activeCategory === 'cp' && (
+                <button onClick={clearFilters} className="mt-4 text-indigo-400 hover:text-indigo-300 text-sm transition-colors">
+                  Clear all filters
                 </button>
               )}
             </div>
-
-            {/* Expanded Filters */}
-            <AnimatePresence>
-              {showFilters && (
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-2"
+            >
+              {currentProblems.map((problem, index) => (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
+                  key={problem.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.025 }}
+                  onClick={() => setSelectedProblem(problem)}
+                  className="group relative bg-white/[0.02] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] hover:bg-white/[0.05] hover:border-indigo-500/20 hover:shadow-[0_0_30px_rgba(99,102,241,0.06)] transition-all duration-300 cursor-pointer"
                 >
-                  <div className="pt-4 mt-4 border-t border-gray-700">
-                    {/* Rating Range */}
-                    <div className="mb-4">
-                      <label className="text-sm text-gray-400 mb-2 block">Rating Range</label>
-                      <div className="flex gap-4 items-center">
-                        <input
-                          type="number"
-                          value={ratingMin}
-                          onChange={(e) => { setRatingMin(e.target.value); setPage(1); }}
-                          placeholder="Min (800)"
-                          min="800"
-                          max="3500"
-                          step="100"
-                          className="w-32 px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500"
-                        />
-                        <span className="text-gray-500">to</span>
-                        <input
-                          type="number"
-                          value={ratingMax}
-                          onChange={(e) => { setRatingMax(e.target.value); setPage(1); }}
-                          placeholder="Max (3500)"
-                          min="800"
-                          max="3500"
-                          step="100"
-                          className="w-32 px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500"
-                        />
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Solved indicator */}
+                    {solvedProblemIds.has(problem.id) && (
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.15)]" title="Solved">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
                       </div>
-                    </div>
-
-                    {/* Difficulty */}
-                    <div>
-                      <label className="text-sm text-gray-400 mb-2 block">Difficulty</label>
-                      <div className="flex flex-wrap gap-2">
-                        {['easy', 'medium', 'hard', 'expert'].map(diff => (
-                          <button
-                            key={diff}
-                            onClick={() => {
-                              setSelectedDifficulty(selectedDifficulty === diff ? '' : diff);
-                              setPage(1);
-                            }}
-                            className={`px-4 py-2 rounded-lg text-sm transition-colors capitalize ${
-                              selectedDifficulty === diff
-                                ? getDifficultyLabel(diff).color
-                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
-                            }`}
+                    )}
+                    {/* Problem Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1.5">
+                        <h3 className="text-white font-medium truncate group-hover:text-indigo-300 transition-colors text-[15px]">
+                          {problem.name}
+                        </h3>
+                        {problem.topic && (
+                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-300 rounded-md text-xs border border-blue-500/15">
+                            {problem.topic}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {problem.tags?.slice(0, 5).map(tag => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 bg-white/[0.04] text-slate-500 rounded-md text-xs border border-white/[0.04]"
                           >
-                            {diff}
-                          </button>
+                            {tag}
+                          </span>
                         ))}
                       </div>
                     </div>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      {/* Difficulty */}
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyLabel(problem.difficulty).color}`}>
+                        {getDifficultyLabel(problem.difficulty).text}
+                      </span>
+                      
+                      {/* Rating (only for CP) */}
+                      {problem.rating && (
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${getDifficultyColor(problem.rating)} shadow-[0_0_6px_currentColor]`} />
+                          <span className="text-white text-sm font-medium tabular-nums">
+                            {problem.rating}
+                          </span>
+                        </div>
+                      )}
+
+                      <Code className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                    </div>
                   </div>
                 </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-
-        {/* Module Info Banner (for module categories) */}
-        {activeCategory !== 'cp' && MODULE_INFO[activeCategory] && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`mb-6 bg-gradient-to-r ${MODULE_INFO[activeCategory].color} rounded-xl p-6`}
-          >
-            <div className="flex items-start gap-4">
-              {(() => {
-                const Icon = MODULE_INFO[activeCategory].icon;
-                return <Icon size={32} className="text-white/80" />;
-              })()}
-              <div>
-                <h2 className="text-xl font-bold text-white mb-1">
-                  {MODULE_INFO[activeCategory].name}
-                </h2>
-                <p className="text-white/80">
-                  {MODULE_INFO[activeCategory].description}
-                </p>
-                {activeCategory === 'oop' && (
-                  <p className="text-white/90 text-sm mt-2 bg-white/10 px-3 py-1 rounded inline-block">
-                    ⚠️ Solutions must follow proper OOP principles
-                  </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Results Info */}
-        {activeCategory === 'cp' && data && (
-          <div className="text-gray-400 text-sm mb-4">
-            Showing {((page - 1) * 20) + 1}-{Math.min(page * 20, data.total)} of {data.total} problems
-          </div>
-        )}
-
-        {activeCategory !== 'cp' && moduleProblems && (
-          <div className="text-gray-400 text-sm mb-4">
-            {moduleProblems.total || moduleProblems.problems?.length || 0} problems available
-          </div>
-        )}
-
-        {/* Problems List */}
-        {currentLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          </div>
-        ) : (activeCategory === 'cp' && error) ? (
-          <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-6 text-center">
-            <p className="text-red-400">Failed to load problems. Please try again later.</p>
-          </div>
-        ) : !currentProblems?.length ? (
-          <div className="bg-gray-800/50 rounded-xl p-10 text-center">
-            <Search className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">No problems found matching your criteria.</p>
-            {activeCategory === 'cp' && (
-              <button onClick={clearFilters} className="mt-4 text-primary hover:underline">
-                Clear all filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-3"
-          >
-            {currentProblems.map((problem, index) => (
-              <motion.div
-                key={problem.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.03 }}
-                onClick={() => setSelectedProblem(problem)}
-                className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50 hover:border-primary/50 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  {/* Solved indicator */}
-                  {solvedProblemIds.has(problem.id) && (
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center" title="Solved">
-                      <Check className="w-4 h-4 text-green-400" />
-                    </div>
-                  )}
-                  {/* Problem Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-white font-medium truncate group-hover:text-primary transition-colors">
-                        {problem.name}
-                      </h3>
-                      {problem.topic && (
-                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">
-                          {problem.topic}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {problem.tags?.slice(0, 5).map(tag => (
-                        <span
-                          key={tag}
-                          className="px-2 py-0.5 bg-gray-700/50 text-gray-400 rounded text-xs"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 flex-shrink-0">
-                    {/* Difficulty */}
-                    <span className={`px-3 py-1 rounded-full text-xs ${getDifficultyLabel(problem.difficulty).color}`}>
-                      {getDifficultyLabel(problem.difficulty).text}
-                    </span>
-                    
-                    {/* Rating (only for CP) */}
-                    {problem.rating && (
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getDifficultyColor(problem.rating)}`} />
-                        <span className="text-white text-sm font-medium">
-                          {problem.rating}
-                        </span>
-                      </div>
-                    )}
-
-                    <Code className="w-5 h-5 text-gray-500 group-hover:text-primary transition-colors" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-
-        {/* Pagination (only for CP) */}
-        {activeCategory === 'cp' && data && data.total_pages > 1 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center justify-center gap-4 mt-8"
-          >
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              Previous
-            </button>
-
-            <span className="text-gray-400">
-              Page {page} of {data.total_pages}
-            </span>
-
-            <button
-              onClick={() => setPage(p => Math.min(data.total_pages, p + 1))}
-              disabled={page === data.total_pages}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
-            >
-              Next
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </motion.div>
-        )}
-
-        {/* Difficulty Legend (only for CP) */}
-        {activeCategory === 'cp' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-8 bg-gray-800/30 rounded-xl p-4 border border-gray-700/50"
-          >
-            <h3 className="text-gray-400 text-sm mb-3">Difficulty Legend</h3>
-            <div className="flex flex-wrap gap-4">
-              {[
-                { rating: 800, label: 'Newbie (800-1199)' },
-                { rating: 1200, label: 'Pupil (1200-1399)' },
-                { rating: 1400, label: 'Specialist (1400-1599)' },
-                { rating: 1600, label: 'Expert (1600-1899)' },
-                { rating: 1900, label: 'Candidate Master (1900-2099)' },
-                { rating: 2100, label: 'Master (2100-2399)' },
-                { rating: 2400, label: 'Grandmaster (2400+)' },
-              ].map(level => (
-                <div key={level.label} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${getDifficultyColor(level.rating)}`} />
-                  <span className="text-gray-400 text-sm">{level.label}</span>
-                </div>
               ))}
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
+
+          {/* Pagination (only for CP) */}
+          {activeCategory === 'cp' && data && data.total_pages > 1 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center gap-3 mt-8"
+            >
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/[0.08] transition-all text-sm"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+
+              <span className="text-slate-500 text-sm px-4 py-2 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                Page <span className="text-white font-medium">{page}</span> of <span className="text-white font-medium">{data.total_pages}</span>
+              </span>
+
+              <button
+                onClick={() => setPage(p => Math.min(data.total_pages, p + 1))}
+                disabled={page === data.total_pages}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/[0.08] transition-all text-sm"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+
+          {/* Difficulty Legend (only for CP) */}
+          {activeCategory === 'cp' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-8 mb-6 bg-white/[0.02] rounded-xl p-5 border border-white/[0.06]"
+            >
+              <h3 className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-3">Difficulty Legend</h3>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {[
+                  { rating: 800, label: 'Newbie (800-1199)' },
+                  { rating: 1200, label: 'Pupil (1200-1399)' },
+                  { rating: 1400, label: 'Specialist (1400-1599)' },
+                  { rating: 1600, label: 'Expert (1600-1899)' },
+                  { rating: 1900, label: 'Candidate Master (1900-2099)' },
+                  { rating: 2100, label: 'Master (2100-2399)' },
+                  { rating: 2400, label: 'Grandmaster (2400+)' },
+                ].map(level => (
+                  <div key={level.label} className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${getDifficultyColor(level.rating)} shadow-[0_0_6px_currentColor]`} />
+                    <span className="text-slate-500 text-sm">{level.label}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
       </div>
     </div>
   );

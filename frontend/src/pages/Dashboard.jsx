@@ -3,23 +3,40 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Code, 
-  Trophy, 
-  Flame, 
+import {
+  Code,
+  Trophy,
+  Flame,
   Star,
   ArrowRight,
   Clock,
   Target,
   Gift,
-  GitBranch,
-  Database,
-  Zap
+  Sparkles,
+  Zap,
+  ChevronRight,
+  Swords,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useGamificationStore } from '../stores/gamificationStore';
 import { lessonsAPI, gamifyAPI, authAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import PageBackground from '../components/ui/PageBackground';
+import StatCard from '../components/ui/StatCard';
+
+/* ─── animation presets ─── */
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.15 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] } },
+};
+const fadeScale = {
+  hidden: { opacity: 0, scale: 0.92 },
+  show: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+};
 
 // Static module definitions for the new course structure
 const MODULES = [
@@ -30,6 +47,7 @@ const MODULES = [
     description: 'Variables, loops, conditions & functions',
     icon: '💻',
     color: 'from-blue-500 to-cyan-500',
+    accent: 'blue',
     lessons: 24,
   },
   {
@@ -39,6 +57,7 @@ const MODULES = [
     description: 'Classes, inheritance & polymorphism',
     icon: '🧩',
     color: 'from-purple-500 to-pink-500',
+    accent: 'violet',
     lessons: 18,
   },
   {
@@ -48,6 +67,7 @@ const MODULES = [
     description: 'Arrays, trees, graphs & sorting',
     icon: '🌳',
     color: 'from-green-500 to-emerald-500',
+    accent: 'green',
     lessons: 22,
   },
   {
@@ -57,18 +77,19 @@ const MODULES = [
     description: 'Advanced algorithms for contests',
     icon: '🏆',
     color: 'from-yellow-500 to-orange-500',
+    accent: 'yellow',
     lessons: 30,
-  }
+  },
 ];
 
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { user, updateUser } = useAuthStore();
-  const { 
+  const {
     level, xp, xpToNextLevel, coins, currentStreak,
-    updateGamification 
+    updateGamification,
   } = useGamificationStore();
-  
+
   const isUrdu = i18n.language === 'ur';
 
   // Fetch gamification data
@@ -129,11 +150,21 @@ const Dashboard = () => {
 
   const quickActions = [
     {
+      icon: Trophy,
+      title: 'Leaderboard',
+      titleUr: 'لیڈربورڈ',
+      description: 'See top coders & your rank',
+      color: 'from-yellow-500 to-amber-500',
+      glow: 'group-hover:shadow-[0_0_40px_rgba(245,158,11,0.2)]',
+      link: '/leaderboard',
+    },
+    {
       icon: Target,
       title: 'Continue Learning',
       titleUr: 'سیکھنا جاری رکھیں',
       description: 'Pick up where you left off',
       color: 'from-blue-500 to-cyan-500',
+      glow: 'group-hover:shadow-[0_0_40px_rgba(59,130,246,0.2)]',
       link: '/courses',
     },
     {
@@ -141,262 +172,315 @@ const Dashboard = () => {
       title: 'Practice Coding',
       titleUr: 'کوڈنگ کی مشق کریں',
       description: 'Solve coding challenges',
-      color: 'from-purple-500 to-pink-500',
+      color: 'from-violet-500 to-pink-500',
+      glow: 'group-hover:shadow-[0_0_40px_rgba(139,92,246,0.2)]',
       link: '/courses',
     },
     {
-      icon: Trophy,
+      icon: Swords,
       title: 'Join Contest',
       titleUr: 'مقابلے میں شامل ہوں',
       description: 'Compete with others',
-      color: 'from-yellow-500 to-orange-500',
+      color: 'from-orange-500 to-red-500',
+      glow: 'group-hover:shadow-[0_0_40px_rgba(234,88,12,0.2)]',
       link: '/compete',
     },
   ];
 
+  const xpPercent = xpToNextLevel > 0 ? (xp / xpToNextLevel) * 100 : 0;
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Welcome Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">
-              Welcome back, {user?.full_name?.split(' ')[0] || user?.username}! 👋
-            </h1>
-            <p className="text-blue-100">
-              Ready to continue your coding journey?
-            </p>
-          </div>
-          <div className="hidden md:flex items-center gap-4">
-            <div className="text-center">
-              <div className="flex items-center gap-1 text-yellow-300">
-                <Star size={20} />
-                <span className="text-xl font-bold">{level}</span>
-              </div>
-              <span className="text-xs text-blue-100">Level</span>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center gap-1 text-orange-300">
-                <Flame size={20} />
-                <span className="text-xl font-bold">{currentStreak}</span>
-              </div>
-              <span className="text-xs text-blue-100">Day Streak</span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+    <div className="relative min-h-screen">
+      {/* ── Immersive background ── */}
+      <PageBackground variant="dashboard" />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* ═══════════════════════════════════════════
+            1. HERO WELCOME SECTION
+        ═══════════════════════════════════════════ */}
+        <motion.section
+          initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gray-800 border border-gray-700 rounded-xl p-4"
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="relative overflow-hidden rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06] p-8 md:p-10"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <Trophy className="text-blue-400" size={20} />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Contests</p>
-              <p className="text-white text-xl font-bold">
-                {user?.stats?.total_contests_participated || 0}
-              </p>
-            </div>
-          </div>
-        </motion.div>
+          {/* gradient accent line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 opacity-80" />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gray-800 border border-gray-700 rounded-xl p-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <Code className="text-purple-400" size={20} />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">XP</p>
-              <p className="text-white text-xl font-bold">{xp}</p>
-            </div>
-          </div>
-        </motion.div>
+          {/* subtle inner glow */}
+          <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gray-800 border border-gray-700 rounded-xl p-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-              <span className="text-xl">🪙</span>
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Coins</p>
-              <p className="text-white text-xl font-bold">{coins}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-gray-800 border border-gray-700 rounded-xl p-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-              <Clock className="text-green-400" size={20} />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Time</p>
-              <p className="text-white text-xl font-bold">
-                {progress.total_time_spent_minutes || 0}m
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Daily Reward */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl p-4"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
-              <Gift size={24} className="text-white" />
-            </div>
-            <div>
-              <h3 className="text-white font-semibold">Daily Reward Available!</h3>
-              <p className="text-gray-400 text-sm">
-                Claim your daily coins and keep your streak going
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleClaimDaily}
-            className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
-          >
-            Claim Now
-          </button>
-        </div>
-      </motion.div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
-          <div className="space-y-3">
-            {quickActions.map((action, index) => (
-              <motion.div
-                key={action.title}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Link
-                  to={action.link}
-                  className="flex items-center gap-4 p-4 bg-gray-800 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
+          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 4 }}
                 >
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center`}>
-                    <action.icon size={24} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-white font-semibold">{action.title}</h3>
-                    <p className="text-gray-400 text-sm">{action.description}</p>
-                  </div>
-                  <ArrowRight className="text-gray-500" size={20} />
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+                  <Sparkles className="text-yellow-400" size={28} />
+                </motion.div>
+                <h1 className="text-3xl md:text-4xl font-extrabold">
+                  <span className="bg-gradient-to-r from-white via-indigo-200 to-violet-300 bg-clip-text text-transparent">
+                    Welcome back, {user?.full_name?.split(' ')[0] || user?.username}!
+                  </span>
+                </h1>
+              </div>
+              <p className="text-slate-400 text-lg max-w-xl">
+                Ready to continue your coding journey? Let's build something amazing today.
+              </p>
+            </div>
 
-        {/* Learning Modules */}
-        <div>
-          <h2 className="text-xl font-bold text-white mb-4">
-            {isUrdu ? 'سیکھنے کے ماڈیولز' : 'Learning Modules'}
-          </h2>
-          <div className="space-y-3">
-            {MODULES.map((module, index) => {
-              const modProgress = moduleProgress[module.id]?.progress || 0;
-              return (
-              <motion.div
-                key={module.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Link
-                  to={`/courses?module=${module.id}&mode=practice`}
-                  className="flex items-center gap-4 p-4 bg-gray-800 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors group"
-                >
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${module.color} flex items-center justify-center text-2xl`}>
-                    {module.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-white font-semibold truncate">
-                      {isUrdu ? module.name_ur : module.name}
-                    </h3>
-                    <p className="text-gray-400 text-sm truncate">
-                      {module.lessons} lessons • {module.description}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full bg-gradient-to-r ${module.color}`}
-                        style={{ width: `${modProgress}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-gray-500">{modProgress}%</span>
-                  </div>
-                  <ArrowRight className="text-gray-500 group-hover:text-white transition-colors flex-shrink-0" size={20} />
-                </Link>
-              </motion.div>
-              );
-            })}
+            {/* Level & streak pills */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-xl">
+                <Star className="text-yellow-400" size={18} />
+                <span className="text-white font-bold text-lg">{level}</span>
+                <span className="text-slate-400 text-sm">Level</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-xl">
+                <Flame className="text-orange-400" size={18} />
+                <span className="text-white font-bold text-lg">{currentStreak}</span>
+                <span className="text-slate-400 text-sm">Streak</span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </motion.section>
 
-      {/* XP Progress */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-white font-semibold">Level Progress</h3>
-            <p className="text-gray-400 text-sm">
-              {xpToNextLevel - xp} XP to Level {level + 1}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 rounded-lg">
-            <Star className="text-blue-400" size={20} />
-            <span className="text-blue-400 font-bold">Level {level}</span>
-          </div>
-        </div>
-        <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
-            initial={{ width: 0 }}
-            animate={{ width: `${(xp / xpToNextLevel) * 100}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
+        {/* ═══════════════════════════════════════════
+            2. STAT CARDS GRID
+        ═══════════════════════════════════════════ */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          <StatCard
+            icon={Trophy}
+            value={user?.stats?.total_contests_participated || 0}
+            label="Contests"
+            color="blue"
+            delay={0.1}
           />
+          <StatCard
+            icon={Zap}
+            value={xp}
+            label="Total XP"
+            color="violet"
+            delay={0.18}
+          />
+          <StatCard
+            icon={Gift}
+            value={coins}
+            label="Coins"
+            color="yellow"
+            delay={0.26}
+          />
+          <StatCard
+            icon={Clock}
+            value={`${progress.total_time_spent_minutes || 0}m`}
+            label="Time Spent"
+            color="green"
+            delay={0.34}
+          />
+        </motion.div>
+
+        {/* ═══════════════════════════════════════════
+            3. DAILY REWARD CARD
+        ═══════════════════════════════════════════ */}
+        <motion.div
+          variants={fadeScale}
+          initial="hidden"
+          animate="show"
+          className="group relative overflow-hidden rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-amber-500/20 hover:border-amber-400/30 transition-all duration-500"
+        >
+          {/* special gradient border glow */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 opacity-80" />
+          <div className="absolute -top-20 right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 transition-colors duration-700" />
+
+          <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4 p-6 md:p-8">
+            <div className="flex items-center gap-5">
+              <motion.div
+                animate={{ y: [0, -6, 0], rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20"
+              >
+                <Gift size={28} className="text-white" />
+              </motion.div>
+              <div>
+                <h3 className="text-white font-bold text-lg">
+                  Daily Reward Available!
+                </h3>
+                <p className="text-slate-400 text-sm mt-0.5">
+                  Claim your daily coins and keep your streak going
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleClaimDaily}
+              className="relative px-8 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm tracking-wide hover:shadow-[0_0_30px_rgba(245,158,11,0.35)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                <Sparkles size={16} />
+                Claim Now
+              </span>
+            </button>
+          </div>
+        </motion.div>
+
+        {/* ═══════════════════════════════════════════
+            4. QUICK ACTIONS + LEARNING MODULES (2-col)
+        ═══════════════════════════════════════════ */}
+        <div className="grid lg:grid-cols-2 gap-8">
+
+          {/* ── Quick Actions ── */}
+          <motion.div variants={stagger} initial="hidden" animate="show">
+            <h2 className="text-xl font-bold mb-5">
+              <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                Quick Actions
+              </span>
+            </h2>
+            <div className="space-y-3">
+              {quickActions.map((action, index) => (
+                <motion.div key={action.title} variants={fadeUp}>
+                  <Link
+                    to={action.link}
+                    className={`group flex items-center gap-4 p-4 rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-500 ${action.glow}`}
+                  >
+                    {/* icon container */}
+                    <div className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-lg`}>
+                      <action.icon size={22} className="text-white" />
+                      {/* soft glow behind icon */}
+                      <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-40 blur-xl transition-opacity duration-500`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-semibold text-[0.95rem]">
+                        {isUrdu ? action.titleUr : action.title}
+                      </h3>
+                      <p className="text-slate-500 text-sm truncate">{action.description}</p>
+                    </div>
+                    <ChevronRight className="text-white/20 group-hover:text-white/60 transition-colors duration-300 flex-shrink-0" size={18} />
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* ── Learning Modules ── */}
+          <motion.div variants={stagger} initial="hidden" animate="show">
+            <h2 className="text-xl font-bold mb-5">
+              <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                {isUrdu ? 'سیکھنے کے ماڈیولز' : 'Learning Modules'}
+              </span>
+            </h2>
+            <div className="space-y-3">
+              {MODULES.map((module) => {
+                const modProgress = moduleProgress[module.id]?.progress || 0;
+                return (
+                  <motion.div key={module.id} variants={fadeUp}>
+                    <Link
+                      to={`/courses?module=${module.id}&mode=practice`}
+                      className="group flex items-center gap-4 p-4 rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,255,255,0.04)]"
+                    >
+                      {/* module emoji icon */}
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${module.color} flex items-center justify-center text-2xl shadow-lg`}>
+                        {module.icon}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-semibold text-[0.95rem] truncate">
+                          {isUrdu ? module.name_ur : module.name}
+                        </h3>
+                        <p className="text-slate-500 text-sm truncate">
+                          {module.lessons} lessons • {module.description}
+                        </p>
+
+                        {/* gradient progress bar */}
+                        <div className="mt-2.5 flex items-center gap-3">
+                          <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <motion.div
+                              className={`h-full rounded-full bg-gradient-to-r ${module.color}`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${modProgress}%` }}
+                              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-slate-500 w-9 text-right">
+                            {modProgress}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <ChevronRight className="text-white/20 group-hover:text-white/60 transition-colors duration-300 flex-shrink-0" size={18} />
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
+
+        {/* ═══════════════════════════════════════════
+            5. LEVEL PROGRESS BAR
+        ═══════════════════════════════════════════ */}
+        <motion.section
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="relative overflow-hidden rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06] p-6 md:p-8"
+        >
+          {/* accent line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 opacity-70" />
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+            <div>
+              <h3 className="text-lg font-bold">
+                <span className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                  Level Progress
+                </span>
+              </h3>
+              <p className="text-slate-500 text-sm mt-0.5">
+                {xpToNextLevel - xp > 0 ? `${xpToNextLevel - xp} XP to Level ${level + 1}` : 'Max level reached!'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/15">
+              <Star className="text-indigo-400" size={18} />
+              <span className="text-indigo-300 font-bold text-sm tracking-wide">
+                Level {level}
+              </span>
+            </div>
+          </div>
+
+          {/* progress bar */}
+          <div className="relative h-4 rounded-full bg-white/[0.06] overflow-hidden">
+            <motion.div
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500"
+              initial={{ width: 0 }}
+              animate={{ width: `${xpPercent}%` }}
+              transition={{ duration: 1.2, ease: 'easeOut', delay: 0.6 }}
+            />
+            {/* animated shimmer */}
+            <motion.div
+              className="absolute inset-y-0 left-0 rounded-full"
+              style={{ width: `${xpPercent}%` }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent animate-[shimmer_2s_infinite]" />
+            </motion.div>
+          </div>
+
+          {/* XP text */}
+          <div className="flex justify-between mt-3 text-xs text-slate-500">
+            <span>{xp} XP</span>
+            <span>{xpToNextLevel} XP</span>
+          </div>
+        </motion.section>
+
+      </div>
     </div>
   );
 };

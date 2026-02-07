@@ -1,287 +1,446 @@
+import { lazy, Suspense, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { 
-  BookOpen, 
-  Code, 
-  Trophy, 
-  Gift, 
+import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion';
+import {
+  BookOpen,
+  Code,
+  Trophy,
+  Gift,
   Sparkles,
-  Users,
+  Play,
   Globe,
-  Play
+  ChevronDown,
+  Zap,
+  Brain,
+  Shield,
+  Users,
+  ArrowRight,
+  CheckCircle2,
 } from 'lucide-react';
+import { cn } from '../lib/utils';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import FloatingNav from '../components/three/FloatingNav';
+import ThreeFooter from '../components/three/ThreeFooter';
+import GlassCard from '../components/ui/GlassCard';
+import GlowButton from '../components/ui/GlowButton';
+import SectionWrapper from '../components/ui/SectionWrapper';
+import MotionWrapper from '../components/ui/MotionWrapper';
 
+// Dynamic import for the 3D scene (heavy Three.js bundle)
+const Scene = lazy(() => import('../components/three/Scene'));
+
+/* ─── Feature Card with 3D Perspective Tilt ─────────────────────── */
+function FeatureCard({ icon: Icon, title, description, color, index }) {
+  const cardRef = useRef(null);
+  const reducedMotion = useReducedMotion();
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [8, -8]), { stiffness: 300, damping: 30 });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-8, 8]), { stiffness: 300, damping: 30 });
+
+  function handleMouseMove(e) {
+    if (reducedMotion || !cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
+  }
+
+  function handleMouseLeave() {
+    x.set(0);
+    y.set(0);
+  }
+
+  return (
+    <MotionWrapper delay={index * 0.08}>
+      <motion.div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          rotateX: reducedMotion ? 0 : rotateX,
+          rotateY: reducedMotion ? 0 : rotateY,
+          transformPerspective: 800,
+        }}
+        className="h-full"
+      >
+        <GlassCard className="h-full group" glow>
+          <div className={cn(
+            'w-14 h-14 rounded-xl flex items-center justify-center mb-5',
+            'bg-gradient-to-br',
+            color,
+          )}>
+            <Icon className="w-7 h-7 text-white" />
+          </div>
+          <h3 className="text-card-title text-white mb-2 group-hover:text-gradient transition-colors duration-300">
+            {title}
+          </h3>
+          <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
+        </GlassCard>
+      </motion.div>
+    </MotionWrapper>
+  );
+}
+
+/* ─── Showcase Card with Scroll Parallax ────────────────────────── */
+function ShowcaseCard({ title, description, icon: Icon, parallaxRange, scrollYProgress }) {
+  const reducedMotion = useReducedMotion();
+  const y = useTransform(scrollYProgress, [0, 1], reducedMotion ? [0, 0] : parallaxRange);
+
+  return (
+    <motion.div style={{ y }}>
+      <GlassCard className="group">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-subtle flex items-center justify-center shrink-0">
+            <Icon className="w-6 h-6 text-accent-indigo" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-gradient transition-colors duration-300">
+              {title}
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
+          </div>
+        </div>
+      </GlassCard>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HOME PAGE — Full 3D Interactive Experience
+   ═══════════════════════════════════════════════════════════════════ */
 const Home = () => {
   const { t } = useTranslation();
+  const reducedMotion = useReducedMotion();
 
+  // Scroll progress for showcase parallax
+  const showcaseRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: showcaseRef,
+    offset: ['start end', 'end start'],
+  });
+
+  /* ── Data ────────────────────────────────────────────── */
   const features = [
     {
       icon: BookOpen,
       title: t('home.features.learn'),
-      titleUr: 'سیکھیں',
-      description: 'Interactive lessons in C++, Python & JavaScript',
-      descriptionUr: 'C++، Python اور JavaScript میں انٹرایکٹو اسباق',
+      description: 'Interactive lessons in C++, Python & JavaScript with AI-powered guidance',
       color: 'from-blue-500 to-cyan-500',
     },
     {
       icon: Code,
       title: t('home.features.practice'),
-      titleUr: 'مشق کریں',
-      description: 'Solve coding challenges with real-time feedback',
-      descriptionUr: 'ریئل ٹائم فیڈبیک کے ساتھ کوڈنگ چیلنجز حل کریں',
+      description: 'Solve coding challenges with real-time feedback and intelligent hints',
       color: 'from-purple-500 to-pink-500',
     },
     {
       icon: Trophy,
       title: t('home.features.compete'),
-      titleUr: 'مقابلہ کریں',
-      description: 'Join contests and climb the leaderboard',
-      descriptionUr: 'مقابلوں میں شامل ہوں اور لیڈر بورڈ پر چڑھیں',
+      description: 'Join live contests, climb leaderboards, and prove your skills',
       color: 'from-yellow-500 to-orange-500',
     },
     {
       icon: Gift,
       title: t('home.features.reward'),
-      titleUr: 'انعام',
-      description: 'Earn coins, badges, and unlock themes',
-      descriptionUr: 'سکے، بیجز حاصل کریں اور تھیمز کھولیں',
+      description: 'Earn coins, collect badges, and unlock exclusive themes',
       color: 'from-green-500 to-emerald-500',
+    },
+    {
+      icon: Brain,
+      title: 'AI Tutoring',
+      description: 'Bilingual AI tutor in English & Urdu with voice explanations',
+      color: 'from-indigo-500 to-violet-500',
+    },
+    {
+      icon: Shield,
+      title: 'Proctored Exams',
+      description: 'Fair, AI-monitored assessments with anti-cheating safeguards',
+      color: 'from-rose-500 to-red-500',
     },
   ];
 
   const stats = [
-    { value: '1000+', label: 'Coding Challenges', labelUr: 'کوڈنگ چیلنجز' },
-    { value: '50+', label: 'Interactive Lessons', labelUr: 'انٹرایکٹو اسباق' },
-    { value: '10k+', label: 'Active Learners', labelUr: 'فعال سیکھنے والے' },
-    { value: '24/7', label: 'AI Tutor Support', labelUr: 'AI ٹیوٹر سپورٹ' },
+    { value: '1000+', label: 'Coding Challenges' },
+    { value: '50+', label: 'Interactive Lessons' },
+    { value: '10k+', label: 'Active Learners' },
+    { value: '24/7', label: 'AI Tutor Support' },
+  ];
+
+  const showcaseItems = [
+    { icon: Zap, title: 'Real-Time Code Execution', description: 'Write, run, and debug code in our built-in editor with instant feedback from Judge0.', parallax: [30, -30] },
+    { icon: Globe, title: 'Bilingual Experience', description: 'Full English & Urdu interface with AI-powered voice explanations in both languages.', parallax: [60, -60] },
+    { icon: Users, title: 'Community Contests', description: 'Compete in live programming contests, earn XP, and rise through the ranks.', parallax: [20, -20] },
+  ];
+
+  const trustSignals = [
+    'AI-Powered Learning',
+    'Bilingual Support',
+    'Gamified Experience',
+    'Real-Time Feedback',
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">&lt;/&gt;</span>
-              </div>
-              <span className="text-xl font-bold text-white">CodeHub</span>
-            </Link>
-            
-            <div className="flex items-center gap-4">
-              <Link 
-                to="/login" 
-                className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-              >
-                {t('auth.login')}
-              </Link>
-              <Link 
-                to="/register" 
-                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity"
-              >
-                {t('auth.register')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-surface-primary">
+      {/* ── Background 3D Scene (fixed, behind everything) ── */}
+      <Suspense fallback={null}>
+        <Scene />
+      </Suspense>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="container mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+      {/* ── Floating Navigation ──────────────────────────── */}
+      <FloatingNav />
+
+      {/* ── Scrollable Content ───────────────────────────── */}
+      <main id="main-content" className="relative z-10">
+
+        {/* ═══ HERO SECTION ═══════════════════════════════ */}
+        <section id="hero" className="relative min-h-screen flex items-center justify-center px-6 pt-24">
+          <div className="mx-auto max-w-5xl text-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              <span className="text-blue-400 text-sm">AI-Powered Learning Platform</span>
-            </div>
+            <MotionWrapper delay={0.1}>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8">
+                <Sparkles className="w-4 h-4 text-accent-indigo" />
+                <span className="text-sm font-medium text-slate-300">
+                  AI-Powered Learning Platform
+                </span>
+              </div>
+            </MotionWrapper>
 
-            {/* Title */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
-              <span className="text-white">Learn Programming with AI</span>
-            </h1>
+            {/* Heading */}
+            <MotionWrapper delay={0.2}>
+              <h1 className="text-hero mb-6">
+                <span className="text-white">Learn to Code with </span>
+                <span className="text-gradient">AI Intelligence</span>
+              </h1>
+            </MotionWrapper>
 
-            {/* Subtitle */}
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-              Master C++, Python, and JavaScript with gamified lessons and bilingual AI tutoring
-            </p>
+            {/* Subheading */}
+            <MotionWrapper delay={0.3}>
+              <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+                Master C++, Python, and JavaScript through gamified lessons, 
+                live contests, and bilingual AI tutoring — in English & Urdu.
+              </p>
+            </MotionWrapper>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                to="/register"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-lg font-semibold rounded-xl hover:opacity-90 transition-opacity"
-              >
-                <Play size={20} />
-                Get Started
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gray-800 text-white text-lg font-semibold rounded-xl hover:bg-gray-700 transition-colors border border-gray-700"
-              >
-                <Globe size={20} />
-                Explore Platform
-              </Link>
-            </div>
-          </motion.div>
+            <MotionWrapper delay={0.4}>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link to="/register">
+                  <GlowButton variant="primary" size="lg" icon={<Play className="w-5 h-5" />}>
+                    Start Learning Free
+                  </GlowButton>
+                </Link>
+                <Link to="/login">
+                  <GlowButton variant="secondary" size="lg" icon={<Globe className="w-5 h-5" />}>
+                    Explore Platform
+                  </GlowButton>
+                </Link>
+              </div>
+            </MotionWrapper>
 
-          {/* Language Support Badge */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-8 flex items-center justify-center gap-4"
-          >
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <span className="text-green-400">🇵🇰</span>
-              <span className="text-green-400">Urdu Support</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <span className="text-blue-400">🇬🇧</span>
-              <span className="text-blue-400">English Support</span>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+            {/* Stats Row */}
+            <MotionWrapper delay={0.6}>
+              <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+                {stats.map((stat, i) => (
+                  <div key={stat.label} className="text-center">
+                    <div className="text-3xl md:text-4xl font-bold text-gradient mb-1">
+                      {stat.value}
+                    </div>
+                    <div className="text-sm text-slate-500">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </MotionWrapper>
 
-      {/* Features Section */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Learn → Practice → Compete → Earn Rewards
-            </h2>
-            <p className="text-gray-400">
-              Complete learning cycle for programming mastery
-            </p>
+            {/* Scroll indicator */}
+            <motion.div
+              className="mt-16 flex justify-center"
+              animate={reducedMotion ? {} : { y: [0, 8, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <a href="#features" className="text-slate-600 hover:text-slate-400 transition-colors cursor-pointer" aria-label="Scroll to features">
+                <ChevronDown className="w-6 h-6" />
+              </a>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ═══ FEATURES SECTION ═══════════════════════════ */}
+        <SectionWrapper id="features">
+          <div className="text-center mb-16">
+            <MotionWrapper>
+              <span className="inline-block text-sm font-semibold text-accent-indigo uppercase tracking-wider mb-3">
+                Everything You Need
+              </span>
+            </MotionWrapper>
+            <MotionWrapper delay={0.1}>
+              <h2 className="text-section text-white mb-4">
+                Learn &rarr; Practice &rarr; Compete &rarr; Earn
+              </h2>
+            </MotionWrapper>
+            <MotionWrapper delay={0.15}>
+              <p className="text-slate-400 max-w-xl mx-auto">
+                A complete gamified learning cycle designed to take you from beginner to pro.
+              </p>
+            </MotionWrapper>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-gray-800/50 backdrop-blur-lg border border-gray-700 rounded-2xl p-6 hover:border-gray-600 transition-colors"
-              >
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4`}>
-                  <feature.icon className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400 text-sm">{feature.description}</p>
-              </motion.div>
+              <FeatureCard key={feature.title} {...feature} index={index} />
             ))}
           </div>
-        </div>
-      </section>
+        </SectionWrapper>
 
-      {/* Stats Section */}
-      <section className="py-20 px-6 bg-gray-800/30">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-4xl md:text-5xl font-bold gradient-text mb-2">
-                  {stat.value}
-                </div>
-                <div className="text-gray-400">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* AI Tutor Section */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto">
-          <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-3xl p-8 md:p-12">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div>
-                <h2 className="text-3xl font-bold text-white mb-6">
-                  🤖 AI Tutor - Your Personal Programming Guide
+        {/* ═══ SHOWCASE SECTION (Scroll Parallax) ════════ */}
+        <SectionWrapper id="showcase">
+          <div ref={showcaseRef} className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Text */}
+            <div>
+              <MotionWrapper>
+                <span className="inline-block text-sm font-semibold text-accent-indigo uppercase tracking-wider mb-3">
+                  Why CodeHub?
+                </span>
+              </MotionWrapper>
+              <MotionWrapper delay={0.1}>
+                <h2 className="text-section text-white mb-6">
+                  Built for the Next Generation of{' '}
+                  <span className="text-gradient">Pakistani Developers</span>
                 </h2>
-                <ul className="space-y-4">
-                  <li className="flex items-center gap-3 text-gray-300">
-                    <span className="text-green-400">✓</span>
-                    <span>Bilingual support (English & Urdu)</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-gray-300">
-                    <span className="text-green-400">✓</span>
-                    <span>Voice explanation of concepts</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-gray-300">
-                    <span className="text-green-400">✓</span>
-                    <span>Real-time code error detection</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-gray-300">
-                    <span className="text-green-400">✓</span>
-                    <span>Simple explanations for beginners</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span>🤖</span>
+              </MotionWrapper>
+              <MotionWrapper delay={0.15}>
+                <p className="text-slate-400 leading-relaxed mb-8">
+                  CodeHub combines AI tutoring, gamification, and bilingual support 
+                  to create an immersive learning experience unique to Pakistan's tech ecosystem.
+                </p>
+              </MotionWrapper>
+              <MotionWrapper delay={0.2}>
+                <Link to="/register">
+                  <GlowButton variant="primary" icon={<ArrowRight className="w-4 h-4" />}>
+                    Join Now
+                  </GlowButton>
+                </Link>
+              </MotionWrapper>
+            </div>
+
+            {/* Right: Parallax Cards */}
+            <div className="flex flex-col gap-6">
+              {showcaseItems.map((item) => (
+                <ShowcaseCard
+                  key={item.title}
+                  {...item}
+                  parallaxRange={item.parallax}
+                  scrollYProgress={scrollYProgress}
+                />
+              ))}
+            </div>
+          </div>
+        </SectionWrapper>
+
+        {/* ═══ AI TUTOR SECTION ═══════════════════════════ */}
+        <SectionWrapper>
+          <MotionWrapper>
+            <GlassCard hover={false} className="p-8 md:p-12 overflow-hidden relative">
+              {/* Background gradient orb */}
+              <div className="absolute -top-20 -right-20 w-60 h-60 bg-accent-indigo/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-accent-violet/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                  <span className="inline-block text-sm font-semibold text-accent-indigo uppercase tracking-wider mb-3">
+                    AI-Powered
+                  </span>
+                  <h2 className="text-section text-white mb-6">
+                    Your Personal{' '}
+                    <span className="text-gradient">AI Tutor</span>
+                  </h2>
+                  <ul className="space-y-4">
+                    {[
+                      'Bilingual support (English & Urdu)',
+                      'Voice explanation of concepts',
+                      'Real-time code error detection',
+                      'Simple explanations for beginners',
+                    ].map((item) => (
+                      <li key={item} className="flex items-center gap-3 text-slate-300">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Chat preview */}
+                <div className="glass-strong rounded-xl p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-10 h-10 bg-gradient-hero rounded-full flex items-center justify-center shrink-0">
+                      <Brain className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 bg-white/5 rounded-lg p-4 border border-white/5">
+                      <p className="text-white text-sm">
+                        Great question! Let me explain how loops work in Python...
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 bg-gray-700 rounded-lg p-4">
-                    <p className="text-white">
-                      Great question! Let me explain how loops work...
-                    </p>
+                  <div className="flex gap-2">
+                    <button className="flex-1 py-2.5 text-sm font-medium rounded-lg glass text-accent-indigo hover:bg-white/5 transition-colors cursor-pointer">
+                      Ask by Voice
+                    </button>
+                    <button className="flex-1 py-2.5 text-sm font-medium rounded-lg glass text-accent-violet hover:bg-white/5 transition-colors cursor-pointer">
+                      Listen
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button className="flex-1 py-2 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
-                    🎤 Ask by Voice
-                  </button>
-                  <button className="flex-1 py-2 bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors">
-                    🔊 Listen Explanation
-                  </button>
+              </div>
+            </GlassCard>
+          </MotionWrapper>
+        </SectionWrapper>
+
+        {/* ═══ CTA SECTION ════════════════════════════════ */}
+        <SectionWrapper id="cta" className="pb-12">
+          <MotionWrapper>
+            <div className="text-center relative">
+              {/* Glow orbs */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent-indigo/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative">
+                <h2 className="text-section text-white mb-4">
+                  Ready to Start Your{' '}
+                  <span className="text-gradient">Coding Journey</span>?
+                </h2>
+                <p className="text-lg text-slate-400 max-w-xl mx-auto mb-8">
+                  Join thousands of students learning to code with AI-powered tools,
+                  gamified challenges, and bilingual support.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+                  <Link to="/register">
+                    <GlowButton variant="primary" size="lg" icon={<Play className="w-5 h-5" />}>
+                      Start Learning for Free
+                    </GlowButton>
+                  </Link>
+                </div>
+
+                {/* Trust signals */}
+                <div className="flex flex-wrap justify-center gap-4">
+                  {trustSignals.map((signal) => (
+                    <div
+                      key={signal}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm text-slate-400"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      {signal}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </MotionWrapper>
+        </SectionWrapper>
+      </main>
 
-      {/* CTA Section */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Start Your Coding Journey?
-          </h2>
-          <p className="text-xl text-gray-400 mb-8">
-            Join thousands of students learning to code with AI
-          </p>
-          <Link 
-            to="/register"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-lg font-semibold rounded-xl hover:opacity-90 transition-opacity"
-          >
-            Start Learning for Free
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-8 px-6 border-t border-gray-800">
-        <div className="container mx-auto text-center text-gray-500">
-          <p>Made with ❤️ by Team AI CHAMPS</p>
-          <p className="mt-2">Empowering the next generation of Pakistani developers</p>
-        </div>
-      </footer>
+      {/* ── Footer ───────────────────────────────────────── */}
+      <ThreeFooter />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import Editor from '@monaco-editor/react';
 import { 
@@ -16,7 +16,12 @@ import {
   Eye,
   EyeOff,
   MessageCircle,
-  Volume2
+  Volume2,
+  Sparkles,
+  Terminal,
+  Code2,
+  Zap,
+  Trophy
 } from 'lucide-react';
 import { codeAPI, aiAPI } from '../services/api';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -158,54 +163,67 @@ const Challenge = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-[#0a0a0f]">
+        <div className="relative">
+          <div className="w-14 h-14 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+          <div className="absolute inset-0 w-14 h-14 rounded-full bg-indigo-500/10 blur-xl animate-pulse" />
+        </div>
       </div>
     );
   }
 
   if (!challenge) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-400">Challenge not found</p>
+      <div className="flex items-center justify-center h-screen bg-[#0a0a0f]">
+        <p className="text-slate-400">Challenge not found</p>
       </div>
     );
   }
 
   const passedTests = testResults.filter(t => t.passed).length;
   const totalTests = testResults.length;
+  const allPassed = totalTests > 0 && passedTests === totalTests;
+
+  const difficultyConfig = {
+    easy: { color: 'emerald', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' },
+    medium: { color: 'amber', bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400' },
+    hard: { color: 'rose', bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400' },
+  };
+  const diff = difficultyConfig[challenge.difficulty] || difficultyConfig.easy;
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-[#0a0a0f]">
+      {/* Header with gradient accent */}
+      <div className="relative bg-white/[0.03] backdrop-blur-2xl border-b border-white/[0.06]">
+        {/* Top gradient accent line */}
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+        
+        <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/courses')}
-              className="text-gray-400 hover:text-white"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
             >
-              <ChevronLeft size={24} />
+              <ChevronLeft size={22} />
             </button>
-            <div>
-              <h1 className="text-lg font-bold text-white">{challenge.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span className={`px-2 py-0.5 rounded text-xs ${
-                  challenge.difficulty === 'easy' 
-                    ? 'bg-green-500/20 text-green-400'
-                    : challenge.difficulty === 'medium'
-                    ? 'bg-yellow-500/20 text-yellow-400'
-                    : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {challenge.difficulty}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Award size={14} className="text-yellow-400" />
-                  {challenge.xp_reward} XP
-                </span>
-                <span className="flex items-center gap-1">
-                  🪙 {challenge.coin_reward} coins
-                </span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <Code2 size={16} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-[15px] font-semibold text-white tracking-tight">{challenge.title}</h1>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${diff.bg} ${diff.border} border ${diff.text}`}>
+                    {challenge.difficulty}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs">
+                    <Sparkles size={12} className="text-amber-400" />
+                    <span className="text-amber-300">{challenge.xp_reward} XP</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-xs text-amber-300/80">
+                    🪙 {challenge.coin_reward}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -213,10 +231,14 @@ const Challenge = () => {
             <button
               onClick={handleGetHint}
               disabled={isLoadingHint}
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-600/20 text-yellow-400 rounded-lg hover:bg-yellow-600/30"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/[0.08] border border-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/[0.15] disabled:opacity-50 transition-all duration-200"
             >
-              <MessageCircle size={18} />
-              {isLoadingHint ? 'Loading...' : 'Get Hint'}
+              {isLoadingHint ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Sparkles size={16} />
+              )}
+              {isLoadingHint ? 'Thinking...' : 'AI Hint'}
             </button>
           </div>
         </div>
@@ -224,32 +246,43 @@ const Challenge = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Problem Description */}
-        <div className="w-1/3 border-r border-gray-700 overflow-auto p-6">
-          <div className="prose prose-invert max-w-none">
-            <h2 className="text-xl font-bold text-white mb-4">Problem</h2>
-            <p className="text-gray-300 whitespace-pre-wrap">{challenge.description}</p>
+        {/* Problem Description - Sidebar */}
+        <div className="w-1/3 bg-white/[0.02] border-r border-white/[0.06] overflow-auto">
+          {/* Sidebar header */}
+          <div className="sticky top-0 z-10 bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06] px-5 py-3 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+            <span className="text-sm font-semibold text-white tracking-tight">Problem</span>
+          </div>
+
+          <div className="p-5 space-y-5">
+            <p className="text-slate-300 text-[14px] leading-relaxed whitespace-pre-wrap">{challenge.description}</p>
             
             {challenge.description_ur && (
-              <div className="mt-4 p-4 bg-gray-800 rounded-lg">
-                <p className="text-gray-400 font-urdu">{challenge.description_ur}</p>
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p className="text-slate-400 font-urdu text-sm">{challenge.description_ur}</p>
               </div>
             )}
 
             {/* Sample Input/Output */}
             {challenge.sample_input && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-white mb-2">Sample Input</h3>
-                <pre className="p-4 bg-gray-800 rounded-lg text-gray-300 text-sm">
+              <div>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <div className="w-1 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-violet-500" />
+                  <h3 className="text-sm font-semibold text-white">Sample Input</h3>
+                </div>
+                <pre className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.06] text-slate-300 text-sm font-mono">
                   {challenge.sample_input}
                 </pre>
               </div>
             )}
             
             {challenge.sample_output && (
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold text-white mb-2">Expected Output</h3>
-                <pre className="p-4 bg-gray-800 rounded-lg text-green-400 text-sm">
+              <div>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <div className="w-1 h-4 rounded-full bg-gradient-to-b from-emerald-500 to-green-500" />
+                  <h3 className="text-sm font-semibold text-white">Expected Output</h3>
+                </div>
+                <pre className="p-4 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/[0.1] text-emerald-300 text-sm font-mono">
                   {challenge.sample_output}
                 </pre>
               </div>
@@ -257,141 +290,184 @@ const Challenge = () => {
 
             {/* Constraints */}
             {challenge.constraints && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-white mb-2">Constraints</h3>
-                <ul className="list-disc list-inside text-gray-400 text-sm">
+              <div>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <div className="w-1 h-4 rounded-full bg-gradient-to-b from-amber-500 to-orange-500" />
+                  <h3 className="text-sm font-semibold text-white">Constraints</h3>
+                </div>
+                <ul className="space-y-1.5">
                   {challenge.constraints.map((c, i) => (
-                    <li key={i}>{c}</li>
+                    <li key={i} className="flex items-start gap-2 text-slate-400 text-sm">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-slate-600 flex-shrink-0" />
+                      {c}
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
 
             {/* Hint */}
-            {showHint && hint && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg"
-              >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <MessageCircle size={16} className="text-yellow-400" />
-                    <span className="font-semibold text-yellow-400">AI Hint</span>
+            <AnimatePresence>
+              {showHint && hint && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                  className="relative p-4 rounded-2xl bg-amber-500/[0.06] border border-amber-500/[0.15] overflow-hidden"
+                >
+                  {/* Subtle glow */}
+                  <div className="absolute -top-12 -right-12 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl" />
+                  
+                  <div className="relative flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                        <Sparkles size={13} className="text-amber-400" />
+                      </div>
+                      <span className="font-semibold text-amber-300 text-sm">AI Hint</span>
+                    </div>
+                    <button
+                      onClick={() => handleSpeakHint(hint)}
+                      className={`p-1.5 rounded-lg transition-all duration-200 ${
+                        isSpeaking
+                          ? 'text-amber-400 bg-amber-500/15'
+                          : 'text-slate-500 hover:text-white hover:bg-white/[0.06]'
+                      }`}
+                      title={isSpeaking ? "Stop speaking" : "Listen to hint"}
+                    >
+                      <Volume2 size={14} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleSpeakHint(hint)}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-yellow-500/20 rounded-lg transition-colors"
-                    title={isSpeaking ? "Stop speaking" : "Listen to hint"}
-                  >
-                    <Volume2 size={16} className={isSpeaking ? "text-yellow-400" : ""} />
-                  </button>
-                </div>
-                <p className="text-gray-300 text-sm">{hint}</p>
-              </motion.div>
-            )}
+                  <p className="relative text-slate-300 text-sm leading-relaxed">{hint}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
         {/* Code Editor & Output */}
         <div className="flex-1 flex flex-col">
           {/* Editor Header */}
-          <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
-            <select
-              value={programmingLanguage}
-              className="bg-gray-900 border border-gray-700 rounded px-3 py-1 text-gray-300 text-sm"
-              disabled
-            >
-              <option value="python">Python</option>
-              <option value="cpp">C++</option>
-              <option value="javascript">JavaScript</option>
-            </select>
+          <div className="bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06] px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-2 h-2 rounded-full bg-indigo-500/60" />
+              <select
+                value={programmingLanguage}
+                className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1 text-slate-300 text-xs font-medium focus:outline-none focus:border-indigo-500/40 appearance-none cursor-default"
+                disabled
+              >
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
+                <option value="javascript">JavaScript</option>
+              </select>
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={handleRunCode}
                 disabled={isRunning}
-                className="flex items-center gap-2 px-4 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-slate-200 text-sm font-medium hover:bg-white/[0.1] disabled:opacity-40 transition-all duration-200"
               >
-                <Play size={16} />
+                <Play size={14} className={isRunning ? 'animate-spin' : ''} />
                 {isRunning ? 'Running...' : 'Run'}
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="flex items-center gap-2 px-4 py-1 bg-green-600 text-white rounded hover:bg-green-500 disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-indigo-500/25 disabled:opacity-40 disabled:hover:shadow-none transition-all duration-300 hover:scale-[1.02]"
               >
-                <Send size={16} />
+                <Send size={14} />
                 {isSubmitting ? 'Submitting...' : 'Submit'}
               </button>
             </div>
           </div>
 
           {/* Editor */}
-          <div className="flex-1">
-            <Editor
-              height="100%"
-              defaultLanguage={programmingLanguage}
-              theme="vs-dark"
-              value={code}
-              onChange={(value) => setCode(value || '')}
-              options={{
-                fontSize: 14,
-                minimap: { enabled: false },
-                padding: { top: 16 },
-              }}
-            />
+          <div className="flex-1 relative">
+            <div className="absolute inset-0">
+              <Editor
+                height="100%"
+                defaultLanguage={programmingLanguage}
+                theme="vs-dark"
+                value={code}
+                onChange={(value) => setCode(value || '')}
+                options={{
+                  fontSize: 14,
+                  minimap: { enabled: false },
+                  padding: { top: 16 },
+                }}
+              />
+            </div>
           </div>
 
           {/* Output Panel */}
-          <div className="h-64 bg-gray-900 border-t border-gray-700">
-            <div className="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center gap-4">
-              <span className="text-gray-400 text-sm">Output</span>
+          <div className="h-64 bg-white/[0.02] border-t border-white/[0.06] flex flex-col">
+            <div className="bg-white/[0.03] backdrop-blur-xl px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Terminal size={14} className="text-slate-500" />
+                <span className="text-slate-400 text-xs font-medium tracking-wider uppercase">Output</span>
+              </div>
               {testResults.length > 0 && (
-                <span className={`text-sm ${passedTests === totalTests ? 'text-green-400' : 'text-red-400'}`}>
-                  {passedTests}/{totalTests} tests passed
-                </span>
+                <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  allPassed
+                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                    : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                }`}>
+                  {allPassed ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                  {passedTests}/{totalTests} passed
+                </div>
               )}
             </div>
-            <div className="p-4 overflow-auto h-48">
+            <div className="p-4 overflow-auto flex-1">
               {testResults.length > 0 ? (
                 <div className="space-y-2">
                   {testResults.map((test, index) => (
-                    <div
+                    <motion.div
                       key={index}
-                      className={`p-3 rounded-lg ${
-                        test.passed ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={`relative p-3.5 rounded-xl overflow-hidden ${
+                        test.passed
+                          ? 'bg-emerald-500/[0.06] border border-emerald-500/[0.12]'
+                          : 'bg-rose-500/[0.06] border border-rose-500/[0.12]'
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-1">
+                      {/* Subtle glow for passed tests */}
+                      {test.passed && (
+                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-emerald-500/20 rounded-full blur-xl" />
+                      )}
+                      
+                      <div className="relative flex items-center gap-2 mb-1">
                         {test.passed ? (
-                          <CheckCircle size={16} className="text-green-400" />
+                          <CheckCircle size={15} className="text-emerald-400" />
                         ) : (
-                          <XCircle size={16} className="text-red-400" />
+                          <XCircle size={15} className="text-rose-400" />
                         )}
-                        <span className={test.passed ? 'text-green-400' : 'text-red-400'}>
+                        <span className={`text-sm font-medium ${test.passed ? 'text-emerald-300' : 'text-rose-300'}`}>
                           Test Case {index + 1}
                         </span>
                         {!test.hidden && (
-                          <span className="text-gray-500 text-xs">
-                            ({test.time_ms}ms)
+                          <span className="text-slate-600 text-xs ml-auto">
+                            {test.time_ms}ms
                           </span>
                         )}
                       </div>
                       {!test.hidden && !test.passed && (
-                        <div className="text-sm text-gray-400 mt-2">
-                          <p>Expected: <span className="text-green-400">{test.expected}</span></p>
-                          <p>Got: <span className="text-red-400">{test.actual}</span></p>
+                        <div className="relative text-sm mt-2 space-y-1 pl-[23px]">
+                          <p className="text-slate-400">Expected: <span className="text-emerald-400 font-mono">{test.expected}</span></p>
+                          <p className="text-slate-400">Got: <span className="text-rose-400 font-mono">{test.actual}</span></p>
                         </div>
                       )}
                       {test.hidden && (
-                        <p className="text-gray-500 text-xs">Hidden test case</p>
+                        <p className="relative text-slate-600 text-xs pl-[23px]">Hidden test case</p>
                       )}
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
-                <pre className="text-sm text-gray-300 whitespace-pre-wrap">
-                  {output || 'Run your code to see output here'}
+                <pre className="text-sm text-slate-400 whitespace-pre-wrap font-mono leading-relaxed">
+                  {output || (
+                    <span className="text-slate-600 italic">Run your code to see output here</span>
+                  )}
                 </pre>
               )}
             </div>

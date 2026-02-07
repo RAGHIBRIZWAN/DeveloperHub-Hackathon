@@ -10,6 +10,7 @@ export const useAuthStore = create(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
+      isVerifying: true, // true until we verify the stored token
       error: null,
       _hasHydrated: false,
 
@@ -18,25 +19,42 @@ export const useAuthStore = create(
       },
 
       login: async (email, password) => {
-        set({ isLoading: true, error: null });
+        // Clear any stale auth state BEFORE making the request
+        sessionStorage.removeItem('codehub-auth');
+        localStorage.removeItem('codehub-auth');
+        delete api.defaults.headers.common['Authorization'];
+
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          isLoading: true,
+          error: null,
+        });
+
         try {
           const response = await api.post('/auth/login', { email, password });
           const { access_token, refresh_token, user } = response.data;
           
+          // Set the auth header FIRST so persist writes the correct state
+          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
           set({
             user,
             accessToken: access_token,
             refreshToken: refresh_token,
             isAuthenticated: true,
             isLoading: false,
+            isVerifying: false,
             error: null,
           });
           
-          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
           return { success: true };
         } catch (error) {
           set({
             isLoading: false,
+            isVerifying: false,
             error: error.response?.data?.detail || 'Login failed',
             isAuthenticated: false,
             user: null,
@@ -46,25 +64,41 @@ export const useAuthStore = create(
       },
 
       register: async (userData) => {
-        set({ isLoading: true, error: null });
+        // Clear any stale auth state
+        sessionStorage.removeItem('codehub-auth');
+        localStorage.removeItem('codehub-auth');
+        delete api.defaults.headers.common['Authorization'];
+
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          isLoading: true,
+          error: null,
+        });
+
         try {
           const response = await api.post('/auth/register', userData);
           const { access_token, refresh_token, user } = response.data;
           
+          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
           set({
             user,
             accessToken: access_token,
             refreshToken: refresh_token,
             isAuthenticated: true,
             isLoading: false,
+            isVerifying: false,
             error: null,
           });
           
-          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
           return { success: true };
         } catch (error) {
           set({
             isLoading: false,
+            isVerifying: false,
             error: error.response?.data?.detail || 'Registration failed',
             isAuthenticated: false,
             user: null,
@@ -74,16 +108,18 @@ export const useAuthStore = create(
       },
 
       logout: () => {
+        delete api.defaults.headers.common['Authorization'];
+        // Remove storage BEFORE setting state to prevent persist re-writing
+        sessionStorage.removeItem('codehub-auth');
+        localStorage.removeItem('codehub-auth');
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          isVerifying: false,
           error: null,
         });
-        delete api.defaults.headers.common['Authorization'];
-        sessionStorage.removeItem('codehub-auth');
-        localStorage.removeItem('codehub-auth');
       },
 
       updateUser: (userData) => {
@@ -118,43 +154,36 @@ export const useAuthStore = create(
         }
       },
 
-      initializeAuth: () => {
+      initializeAuth: async () => {
         const { accessToken, isAuthenticated, _hasHydrated } = get();
         if (!_hasHydrated) {
           set({ _hasHydrated: true });
         }
+
+        // If we have a stored token, validate it by calling the server
         if (accessToken && isAuthenticated) {
           api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+          try {
+            const response = await api.get('/auth/me');
+            const freshUser = response.data;
+            // Update user with fresh data from the server
+            set({
+              user: freshUser,
+              isVerifying: false,
+              isAuthenticated: true,
+            });
+          } catch {
+            // Token invalid or expired — force logout
+            get().logout();
+          }
+        } else {
+          set({ isVerifying: false });
         }
       },
     }),
     {
       name: 'codehub-auth',
-      storage: createJSONStorage(() => {
-        return {
-          getItem: (name) => {
-            // Try sessionStorage first, fallback to localStorage for persistence
-            const sessionValue = sessionStorage.getItem(name);
-            if (sessionValue) return sessionValue;
-            const localValue = localStorage.getItem(name);
-            if (localValue) {
-              // Restore to sessionStorage
-              sessionStorage.setItem(name, localValue);
-              return localValue;
-            }
-            return null;
-          },
-          setItem: (name, value) => {
-            // Save to both for persistence
-            sessionStorage.setItem(name, value);
-            localStorage.setItem(name, value);
-          },
-          removeItem: (name) => {
-            sessionStorage.removeItem(name);
-            localStorage.removeItem(name);
-          },
-        };
-      }),
+      storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
