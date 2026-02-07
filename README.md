@@ -137,7 +137,6 @@ codehub/
 - Node.js 18+
 - Python 3.11+
 - MongoDB Atlas account
-- Judge0 API access
 - Groq API key
 - Google AI (Gemini) API key
 
