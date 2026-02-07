@@ -71,22 +71,13 @@ async def get_gamification_profile(current_user: dict = Depends(get_current_user
         user.coins = rewards.coin_balance
         await user.save()
     
-    # Compute rank title based on level
-    level = user.level
-    if level >= 50:
-        rank_title = "Legendary"
-    elif level >= 30:
-        rank_title = "Grandmaster"
-    elif level >= 20:
-        rank_title = "Master"
-    elif level >= 15:
-        rank_title = "Expert"
-    elif level >= 10:
-        rank_title = "Advanced"
-    elif level >= 5:
-        rank_title = "Intermediate"
-    else:
-        rank_title = "Beginner"
+    # Sync streak: user.stats is the source of truth, keep rewards in sync
+    user.update_streak()
+    await user.save()
+    rewards.current_streak = user.stats.current_streak
+    rewards.longest_streak = user.stats.longest_streak
+    rewards.last_streak_date = user.stats.last_activity_date
+    await rewards.save()
     
     return {
         "level": user.level,
@@ -95,13 +86,12 @@ async def get_gamification_profile(current_user: dict = Depends(get_current_user
         "coins": rewards.coin_balance,
         "total_coins_earned": rewards.total_coins_earned,
         "total_xp_earned": rewards.total_xp_earned,
-        "current_streak": rewards.current_streak,
-        "longest_streak": rewards.longest_streak,
+        "current_streak": user.stats.current_streak,
+        "longest_streak": user.stats.longest_streak,
         "badges_count": len(rewards.earned_badges),
         "achievements_count": len(rewards.earned_achievements),
         "unlocked_themes": rewards.unlocked_themes,
         "active_theme": user.preferences.theme,
-        "rank_title": rank_title,
         "rating": user.rating
     }
 

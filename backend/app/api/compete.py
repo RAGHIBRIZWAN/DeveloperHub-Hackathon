@@ -4,7 +4,7 @@ Competitive Programming API Routes
 Contests, leaderboards, and ratings.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Body
 from pydantic import BaseModel
@@ -20,6 +20,21 @@ from app.models.gamification import UserRewards
 router = APIRouter()
 
 
+def _to_naive_utc(dt):
+    """Convert any datetime to naive UTC for safe comparison.
+    Handles both timezone-aware and naive datetimes consistently."""
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt  # assume already UTC
+
+
+def _utcnow():
+    """Get current UTC time as naive datetime."""
+    return datetime.utcnow()
+
+
 # ============ Helpers ============
 
 async def get_contest_safe(contest_id: str) -> Contest:
@@ -33,11 +48,15 @@ async def get_contest_safe(contest_id: str) -> Contest:
         raise HTTPException(status_code=404, detail="Contest not found")
     
     # Auto-update contest status based on current time
-    now = datetime.utcnow()
+    # Normalize all datetimes to naive UTC for safe comparison
+    now = _utcnow()
+    start_time = _to_naive_utc(contest.start_time)
+    end_time = _to_naive_utc(contest.end_time)
+    
     new_status = None
-    if contest.status == "upcoming" and now >= contest.start_time:
-        new_status = "ongoing" if now < contest.end_time else "completed"
-    elif contest.status == "ongoing" and now >= contest.end_time:
+    if contest.status == "upcoming" and now >= start_time:
+        new_status = "ongoing" if now < end_time else "completed"
+    elif contest.status == "ongoing" and now >= end_time:
         new_status = "completed"
     
     if new_status:
@@ -112,6 +131,90 @@ def calculate_contest_rating_change(
     return change
 
 
+async def _auto_finalize_contest(contest):
+    """Auto-finalize a completed contest — rank participants, award XP/coins/rating."""
+    all_participations = await ContestParticipation.find(
+        {"contest_id": str(contest.id)}
+    ).to_list()
+    
+    if not all_participations:
+        contest.is_results_published = True
+        await contest.save()
+        return
+    
+    qualified = [p for p in all_participations if not getattr(p, 'is_disqualified', False)]
+    disqualified = [p for p in all_participations if getattr(p, 'is_disqualified', False)]
+    
+    qualified.sort(key=lambda p: (-p.total_points, p.total_penalty))
+    
+    total_rating = sum(p.old_rating or 1000 for p in qualified)
+    avg_rating = total_rating // max(len(qualified), 1)
+    
+    for rank, p in enumerate(qualified, 1):
+        p.rank = rank
+        participant_user = await User.get(p.user_id)
+        if not participant_user:
+            await p.save()
+            continue
+        
+        if rank == 1:
+            xp_award, coins_award = 150, 75
+        elif rank == 2:
+            xp_award, coins_award = 100, 50
+        elif rank == 3:
+            xp_award, coins_award = 75, 35
+        elif rank <= 10:
+            xp_award, coins_award = 40, 20
+        else:
+            xp_award, coins_award = 15, 10
+        
+        participant_user.add_xp(xp_award)
+        participant_user.add_coins(coins_award)
+        participant_user.stats.total_contests_participated += 1
+        if rank == 1:
+            participant_user.stats.total_contests_won += 1
+        
+        if contest.contest_type == "rated":
+            rating_change = calculate_contest_rating_change(
+                p.old_rating or 1000, rank, len(qualified), avg_rating
+            )
+            p.rating_change = rating_change
+            p.new_rating = (p.old_rating or 1000) + rating_change
+            participant_user.rating = max(0, p.new_rating)
+            participant_user.max_rating = max(participant_user.max_rating, participant_user.rating)
+        
+        participant_user.updated_at = _utcnow()
+        await participant_user.save()
+        
+        try:
+            rewards = await UserRewards.find_one({"user_id": p.user_id})
+            if not rewards:
+                rewards = UserRewards(user_id=p.user_id)
+                await rewards.insert()
+            rewards.total_xp_earned += xp_award
+            rewards.add_coins(coins_award, "contest", f"Contest rank #{rank} - {contest.title}")
+            await rewards.save()
+        except Exception:
+            pass
+        
+        await p.save()
+    
+    for p in disqualified:
+        p.rank = None
+        p.total_points = 0
+        p.problems_solved = 0
+        participant_user = await User.get(p.user_id)
+        if participant_user:
+            participant_user.stats.total_contests_participated += 1
+            participant_user.updated_at = _utcnow()
+            await participant_user.save()
+        await p.save()
+    
+    contest.is_results_published = True
+    await contest.save()
+    print(f"Auto-finalized contest {contest.id}: {len(qualified)} ranked, {len(disqualified)} disqualified")
+
+
 # ============ Routes ============
 
 @router.get("/contests")
@@ -124,9 +227,18 @@ async def get_contests(
     Get list of contests.
     """
     # Auto-update contest statuses before querying
-    now = datetime.utcnow()
+    # Use naive UTC - PyMongo treats naive datetimes as UTC for queries
+    now = _utcnow()
     await Contest.find({"status": "upcoming", "start_time": {"$lte": now}, "end_time": {"$gt": now}}).update_many({"$set": {"status": "ongoing", "updated_at": now}})
     await Contest.find({"status": {"$in": ["upcoming", "ongoing"]}, "end_time": {"$lte": now}}).update_many({"$set": {"status": "completed", "updated_at": now}})
+    
+    # Auto-finalize completed contests that haven't been finalized yet
+    unfinalized = await Contest.find({"status": "completed", "is_results_published": False}).to_list()
+    for uf_contest in unfinalized:
+        try:
+            await _auto_finalize_contest(uf_contest)
+        except Exception as e:
+            print(f"Auto-finalize failed for contest {uf_contest.id}: {e}")
     
     query = {}
     
@@ -146,8 +258,8 @@ async def get_contests(
                 "id": str(c.id),
                 "title": c.title,
                 "description": c.description,
-                "start_time": c.start_time,
-                "end_time": c.end_time,
+                "start_time": _to_naive_utc(c.start_time).isoformat() + "Z",
+                "end_time": _to_naive_utc(c.end_time).isoformat() + "Z",
                 "duration_minutes": c.duration_minutes,
                 "contest_type": c.contest_type,
                 "difficulty": c.difficulty,
@@ -189,21 +301,28 @@ async def get_contest(
         "contest_id": contest_id
     })
     
-    # Auto-register user for ongoing contests if not registered
+    # Block unregistered users from ongoing contests - do NOT auto-register
     if not participation and contest.status == "ongoing":
-        user = await User.get(current_user["user_id"])
-        participation = ContestParticipation(
-            user_id=current_user["user_id"],
-            contest_id=contest_id,
-            old_rating=user.rating if user else 1000
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must register for this contest before it starts. Unregistered users cannot enter."
         )
-        await participation.insert()
-        contest.registered_count += 1
-        await contest.save()
     
-    # Only show problems if contest has started or user is registered
-    now = datetime.utcnow()
-    show_problems = contest.start_time <= now or participation is not None
+    # Block disqualified users from re-entering
+    if participation and getattr(participation, 'is_disqualified', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You have been disqualified from this contest and cannot rejoin."
+        )
+    
+    # Only show problems if contest has started and user is registered
+    now = _utcnow()
+    show_problems = (_to_naive_utc(contest.start_time) <= now) and (participation is not None)
+    
+    # Mark start time on first access during ongoing contest
+    if participation and contest.status == "ongoing" and not participation.started_at:
+        participation.started_at = _utcnow()
+        await participation.save()
     
     response = {
         "id": str(contest.id),
@@ -211,8 +330,8 @@ async def get_contest(
         "title_ur": getattr(contest, 'title_ur', None),
         "description": contest.description,
         "description_ur": getattr(contest, 'description_ur', None),
-        "start_time": contest.start_time,
-        "end_time": contest.end_time,
+        "start_time": _to_naive_utc(contest.start_time).isoformat() + "Z",
+        "end_time": _to_naive_utc(contest.end_time).isoformat() + "Z",
         "duration_minutes": contest.duration_minutes,
         "contest_type": contest.contest_type,
         "difficulty": contest.difficulty,
@@ -220,7 +339,10 @@ async def get_contest(
         "scoring_type": contest.scoring_type,
         "registered_count": contest.registered_count,
         "is_registered": participation is not None,
-        "user_rank": participation.rank if participation else None
+        "is_disqualified": getattr(participation, 'is_disqualified', False) if participation else False,
+        "user_rank": participation.rank if participation else None,
+        "total_points": participation.total_points if participation else 0,
+        "problems_solved": participation.problems_solved if participation else 0
     }
     
     if show_problems:
@@ -323,11 +445,11 @@ async def register_for_contest(
             detail="Already registered"
         )
     
-    # Check if registration is open (allow upcoming and ongoing)
-    if contest.status == "completed":
+    # Check if registration is open (only allow upcoming)
+    if contest.status != "upcoming":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Contest has ended"
+            detail="Registration is only allowed before the contest starts"
         )
     
     # Check max participants
@@ -366,16 +488,16 @@ async def get_contest_leaderboard(
     """
     contest = await get_contest_safe(contest_id)
     
-    # Get participations sorted by score
+    # Get participations sorted by score, excluding disqualified
     skip = (page - 1) * limit
     participations = await ContestParticipation.find(
-        {"contest_id": contest_id}
+        {"contest_id": contest_id, "is_disqualified": {"$ne": True}}
     ).sort([
         ("total_points", -1),
         ("total_penalty", 1)
     ]).skip(skip).limit(limit).to_list()
     
-    total = await ContestParticipation.find({"contest_id": contest_id}).count()
+    total = await ContestParticipation.find({"contest_id": contest_id, "is_disqualified": {"$ne": True}}).count()
     
     # Get user details
     leaderboard = []
@@ -494,6 +616,10 @@ async def create_contest(
     # Create slug
     slug = request.title.lower().replace(" ", "-")
     
+    # Normalize start_time to naive UTC for consistent storage
+    start_time = _to_naive_utc(request.start_time)
+    end_time = start_time + timedelta(minutes=request.duration_minutes)
+    
     contest = Contest(
         title=request.title,
         title_ur=request.title_ur,
@@ -501,8 +627,8 @@ async def create_contest(
         description=request.description,
         description_ur=request.description_ur,
         problems=problems,
-        start_time=request.start_time,
-        end_time=request.start_time + timedelta(minutes=request.duration_minutes),
+        start_time=start_time,
+        end_time=end_time,
         duration_minutes=request.duration_minutes,
         contest_type=request.contest_type,
         is_public=request.is_public,
@@ -514,6 +640,55 @@ async def create_contest(
     return {
         "message": "Contest created",
         "contest_id": str(contest.id)
+    }
+
+
+@router.post("/contests/{contest_id}/disqualify")
+async def disqualify_user(
+    contest_id: str,
+    request: dict = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Disqualify a user from a contest (e.g., for tab switching).
+    Can be called by the user themselves (self-report) or by admin.
+    """
+    contest = await get_contest_safe(contest_id)
+    
+    # Determine target user
+    target_user_id = request.get("user_id", current_user["user_id"])
+    reason = request.get("reason", "Tab switch violation")
+    
+    # Only allow self-disqualification or admin disqualification
+    if target_user_id != current_user["user_id"]:
+        user = await User.get(current_user["user_id"])
+        if not user or user.role != "admin":
+            raise HTTPException(status_code=403, detail="Only admins can disqualify other users")
+    
+    participation = await ContestParticipation.find_one({
+        "user_id": target_user_id,
+        "contest_id": contest_id
+    })
+    
+    if not participation:
+        raise HTTPException(status_code=404, detail="Participation not found")
+    
+    if getattr(participation, 'is_disqualified', False):
+        return {"message": "User already disqualified", "already_disqualified": True}
+    
+    # Disqualify
+    participation.is_disqualified = True
+    participation.disqualified_at = _utcnow()
+    participation.disqualification_reason = reason
+    participation.total_points = 0  # Zero out points
+    participation.problems_solved = 0
+    participation.finished_at = _utcnow()
+    await participation.save()
+    
+    return {
+        "message": "User disqualified",
+        "disqualified": True,
+        "reason": reason
     }
 
 
@@ -535,17 +710,30 @@ async def submit_contest_solution(
     if contest.status != "ongoing":
         raise HTTPException(status_code=400, detail="Contest is not currently active")
     
+    # Verify contest hasn't actually ended (double-check timing)
+    now = _utcnow()
+    if now >= _to_naive_utc(contest.end_time):
+        raise HTTPException(status_code=400, detail="Contest time has expired")
+    
     # Check registration
     participation = await ContestParticipation.find_one({
         "user_id": current_user["user_id"],
         "contest_id": contest_id
     })
     if not participation:
-        raise HTTPException(status_code=400, detail="You are not registered for this contest")
+        raise HTTPException(status_code=403, detail="You are not registered for this contest")
+    
+    # Check disqualification
+    if getattr(participation, 'is_disqualified', False):
+        raise HTTPException(status_code=403, detail="You have been disqualified from this contest")
     
     problem_index = request.get("problem_index", 0)
     code = request.get("code", "")
     language = request.get("language", "python")
+    
+    # Validate language
+    if language not in ("python", "cpp", "javascript"):
+        raise HTTPException(status_code=400, detail="Unsupported language. Use python, cpp, or javascript.")
     
     if problem_index < 0 or problem_index >= len(contest.problems):
         raise HTTPException(status_code=400, detail="Invalid problem index")
@@ -566,6 +754,7 @@ async def submit_contest_solution(
     # Execute code against test cases
     passed = 0
     total = len(test_cases)
+    errors = []
     
     for tc in test_cases:
         tc_input = tc.get("input", "") if isinstance(tc, dict) else ""
@@ -573,88 +762,133 @@ async def submit_contest_solution(
         
         try:
             if language == "python":
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
                     f.write(code)
                     code_file = f.name
                 try:
                     proc = subprocess.run(
                         ["python", code_file],
-                        input=tc_input, capture_output=True, text=True, timeout=5
+                        input=tc_input, capture_output=True, text=True, timeout=10
                     )
                     if proc.returncode == 0 and proc.stdout.strip() == tc_output.strip():
                         passed += 1
+                    elif proc.returncode != 0:
+                        errors.append(proc.stderr[:200] if proc.stderr else "Runtime error")
                 finally:
-                    os.unlink(code_file)
+                    try: os.unlink(code_file)
+                    except: pass
+                    
             elif language == "cpp":
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.cpp', delete=False) as f:
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.cpp', delete=False, encoding='utf-8') as f:
                     f.write(code)
                     code_file = f.name
-                exe_file = code_file.replace('.cpp', '.exe' if os.name == 'nt' else '')
+                exe_file = code_file.replace('.cpp', '.exe' if os.name == 'nt' else '.out')
                 try:
                     compile_res = subprocess.run(
-                        ["g++", code_file, "-o", exe_file, "-std=c++14"],
+                        ["g++", code_file, "-o", exe_file, "-std=c++17", "-O2"],
                         capture_output=True, text=True, timeout=30
                     )
-                    if compile_res.returncode == 0:
+                    if compile_res.returncode != 0:
+                        errors.append(f"Compilation error: {compile_res.stderr[:200]}")
+                    else:
                         proc = subprocess.run(
-                            [exe_file], input=tc_input, capture_output=True, text=True, timeout=5
+                            [exe_file], input=tc_input, capture_output=True, text=True, timeout=10
                         )
                         if proc.returncode == 0 and proc.stdout.strip() == tc_output.strip():
                             passed += 1
+                        elif proc.returncode != 0:
+                            errors.append(proc.stderr[:200] if proc.stderr else "Runtime error")
                 finally:
                     try: os.unlink(code_file)
                     except: pass
                     try: os.unlink(exe_file)
                     except: pass
+                    
             elif language == "javascript":
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
-                    escaped = tc_input.replace('`', '\\`')
-                    wrapped = f"const input = `{escaped}`.trim().split('\\n'); let idx=0; const readLine=()=>input[idx++]||'';\n{code}"
-                    f.write(wrapped)
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f:
+                    # Proper stdin handling for Node.js
+                    wrapper = (
+                        "const fs = require('fs');\n"
+                        "const inputData = fs.readFileSync('/dev/stdin', 'utf8').trim();\n"
+                        "const inputLines = inputData.split('\\n');\n"
+                        "let lineIndex = 0;\n"
+                        "function readLine() { return inputLines[lineIndex++] || ''; }\n"
+                        "const readline = { question: (q, cb) => cb(readLine()) };\n"
+                    )
+                    # On Windows, use a different stdin approach
+                    if os.name == 'nt':
+                        wrapper = (
+                            "const inputData = require('fs').readFileSync(0, 'utf8').trim();\n"
+                            "const inputLines = inputData.split('\\n');\n"
+                            "let lineIndex = 0;\n"
+                            "function readLine() { return inputLines[lineIndex++] || ''; }\n"
+                            "const readline = { question: (q, cb) => cb(readLine()) };\n"
+                        )
+                    f.write(wrapper + code)
                     code_file = f.name
                 try:
                     proc = subprocess.run(
                         ["node", code_file],
-                        capture_output=True, text=True, timeout=5
+                        input=tc_input, capture_output=True, text=True, timeout=10
                     )
                     if proc.returncode == 0 and proc.stdout.strip() == tc_output.strip():
                         passed += 1
+                    elif proc.returncode != 0:
+                        errors.append(proc.stderr[:200] if proc.stderr else "Runtime error")
                 finally:
-                    os.unlink(code_file)
-        except Exception:
-            pass
+                    try: os.unlink(code_file)
+                    except: pass
+        except subprocess.TimeoutExpired:
+            errors.append("Time limit exceeded")
+        except Exception as e:
+            errors.append(str(e)[:100])
     
     is_accepted = passed == total and total > 0
     points = problem.points if is_accepted else 0
     
-    # Update participation
+    # Update participation timing
     if not participation.started_at:
-        participation.started_at = datetime.utcnow()
+        participation.started_at = _utcnow()
+    
+    # Calculate penalty (minutes from contest start to submission)
+    contest_start = _to_naive_utc(contest.start_time)
+    submission_time = _utcnow()
+    time_from_start = int((submission_time - contest_start).total_seconds() / 60)
     
     # Record submission for this problem
     sub_record = {
         "problem_order": problem_index,
+        "language": language,
         "passed": passed,
         "total": total,
         "accepted": is_accepted,
         "points": points,
-        "submitted_at": datetime.utcnow().isoformat()
+        "penalty_minutes": time_from_start,
+        "submitted_at": submission_time.isoformat() + "Z"
     }
     
     # Check if already solved this problem (don't add duplicate points)
-    existing_sub = next(
-        (s for s in participation.problem_submissions if s.get("problem_order") == problem_index and s.get("accepted")),
+    existing_accepted = next(
+        (s for s in participation.problem_submissions 
+         if s.get("problem_order") == problem_index and s.get("accepted")),
         None
     )
     
-    if not existing_sub:
-        participation.problem_submissions.append(sub_record)
-        if is_accepted:
-            participation.total_points += points
-            participation.problems_solved += 1
-    else:
-        # Already accepted, just record the submission
-        participation.problem_submissions.append(sub_record)
+    # Count previous wrong attempts for this problem (for penalty calculation)
+    wrong_attempts = sum(
+        1 for s in participation.problem_submissions 
+        if s.get("problem_order") == problem_index and not s.get("accepted")
+    )
+    
+    # Always record the submission
+    participation.problem_submissions.append(sub_record)
+    
+    if not existing_accepted and is_accepted:
+        # First time solving this problem
+        participation.total_points += points
+        participation.problems_solved += 1
+        # Add penalty: time of acceptance + 20 min per wrong attempt
+        participation.total_penalty += time_from_start + (wrong_attempts * 20)
     
     await participation.save()
     
@@ -664,7 +898,9 @@ async def submit_contest_solution(
         "total_tests": total,
         "points": points,
         "total_points": participation.total_points,
-        "problems_solved": participation.problems_solved
+        "problems_solved": participation.problems_solved,
+        "errors": errors[:1] if errors and not is_accepted else [],
+        "language": language
     }
 
 
@@ -684,26 +920,30 @@ async def finalize_contest(
             detail="Results already published"
         )
     
-    # Get all participations
-    participations = await ContestParticipation.find(
+    # Get all participations, exclude disqualified users from ranking
+    all_participations = await ContestParticipation.find(
         {"contest_id": contest_id}
-    ).sort([
-        ("total_points", -1),
-        ("total_penalty", 1)
-    ]).to_list()
+    ).to_list()
     
-    if not participations:
+    if not all_participations:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No participants"
         )
     
-    # Calculate average rating
-    total_rating = sum(p.old_rating or 1000 for p in participations)
-    avg_rating = total_rating // len(participations)
+    # Separate qualified and disqualified
+    qualified = [p for p in all_participations if not getattr(p, 'is_disqualified', False)]
+    disqualified = [p for p in all_participations if getattr(p, 'is_disqualified', False)]
     
-    # Calculate and apply rating changes + XP by position
-    for rank, p in enumerate(participations, 1):
+    # Sort qualified by points (desc) then penalty (asc)
+    qualified.sort(key=lambda p: (-p.total_points, p.total_penalty))
+    
+    # Calculate average rating of qualified participants
+    total_rating = sum(p.old_rating or 1000 for p in qualified)
+    avg_rating = total_rating // max(len(qualified), 1)
+    
+    # Process qualified participants
+    for rank, p in enumerate(qualified, 1):
         p.rank = rank
         
         participant_user = await User.get(p.user_id)
@@ -711,22 +951,22 @@ async def finalize_contest(
             await p.save()
             continue
         
-        # Award XP based on position
+        # Award XP and coins based on position
         if rank == 1:
+            xp_award = 150
+            coins_award = 75
+        elif rank == 2:
             xp_award = 100
             coins_award = 50
-        elif rank == 2:
+        elif rank == 3:
             xp_award = 75
             coins_award = 35
-        elif rank == 3:
-            xp_award = 50
-            coins_award = 25
         elif rank <= 10:
-            xp_award = 30
-            coins_award = 15
+            xp_award = 40
+            coins_award = 20
         else:
-            xp_award = 10  # Participation XP
-            coins_award = 5
+            xp_award = 15  # Participation XP
+            coins_award = 10
         
         # Apply XP and coins
         participant_user.add_xp(xp_award)
@@ -739,16 +979,16 @@ async def finalize_contest(
             rating_change = calculate_contest_rating_change(
                 p.old_rating or 1000,
                 rank,
-                len(participations),
+                len(qualified),
                 avg_rating
             )
             p.rating_change = rating_change
             p.new_rating = (p.old_rating or 1000) + rating_change
             
-            participant_user.rating = p.new_rating
-            participant_user.max_rating = max(participant_user.max_rating, p.new_rating)
+            participant_user.rating = max(0, p.new_rating)  # Don't go below 0
+            participant_user.max_rating = max(participant_user.max_rating, participant_user.rating)
         
-        participant_user.updated_at = datetime.utcnow()
+        participant_user.updated_at = _utcnow()
         await participant_user.save()
         
         # Sync UserRewards
@@ -758,11 +998,23 @@ async def finalize_contest(
                 rewards = UserRewards(user_id=p.user_id)
                 await rewards.insert()
             rewards.total_xp_earned += xp_award
-            rewards.add_coins(coins_award, "contest", f"Contest #{rank} - {contest.title}")
+            rewards.add_coins(coins_award, "contest", f"Contest rank #{rank} - {contest.title}")
             await rewards.save()
         except Exception as e:
             print(f"Failed to sync rewards for user {p.user_id}: {e}")
         
+        await p.save()
+    
+    # Process disqualified - give rank None, 0 points, mark participated
+    for p in disqualified:
+        p.rank = None
+        p.total_points = 0
+        p.problems_solved = 0
+        participant_user = await User.get(p.user_id)
+        if participant_user:
+            participant_user.stats.total_contests_participated += 1
+            participant_user.updated_at = _utcnow()
+            await participant_user.save()
         await p.save()
     
     # Update contest status
@@ -770,7 +1022,11 @@ async def finalize_contest(
     contest.is_results_published = True
     await contest.save()
     
-    return {"message": "Contest finalized", "participants": len(participations)}
+    return {
+        "message": "Contest finalized",
+        "participants": len(qualified),
+        "disqualified": len(disqualified)
+    }
 
 
 @router.delete("/contests/{contest_id}")
@@ -779,9 +1035,15 @@ async def delete_contest(
     current_user: dict = Depends(get_current_admin)
 ):
     """
-    Delete a contest (Admin only).
+    Delete a contest (Admin only). Cannot delete ongoing contests.
     """
     contest = await get_contest_safe(contest_id)
+    
+    if contest.status == "ongoing":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete an ongoing contest. Wait for it to finish first."
+        )
     
     # Delete all participations for this contest
     await ContestParticipation.find({"contest_id": contest_id}).delete()

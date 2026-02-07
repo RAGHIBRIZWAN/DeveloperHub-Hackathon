@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Editor from '@monaco-editor/react';
 import { 
   Clock, 
@@ -24,32 +24,56 @@ const Contest = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { programmingLanguage } = useSettingsStore();
+  const queryClient = useQueryClient();
   
   const [selectedProblem, setSelectedProblem] = useState(0);
   const [code, setCode] = useState('');
+  const [language, setLanguage] = useState(programmingLanguage || 'python');
   const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissions, setSubmissions] = useState({});
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [examEnded, setExamEnded] = useState(false);
+  const [isDisqualified, setIsDisqualified] = useState(false);
+
+  // Helper: parse server datetime as UTC (server returns naive UTC without 'Z')
+  const parseUTC = (dateStr) => {
+    if (!dateStr) return null;
+    const s = String(dateStr);
+    if (!s.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s + 'Z');
+    return new Date(s);
+  };
 
   // Fetch contest
   const { data: contestData, isLoading, error: contestError } = useQuery({
     queryKey: ['contest', id],
     queryFn: async () => {
       const response = await competeAPI.getContest(id);
-      return response.data;
+      const data = response.data;
+      // Check if user is disqualified
+      if (data.is_disqualified) {
+        setIsDisqualified(true);
+        setExamEnded(true);
+      }
+      // Check if user is registered
+      if (!data.is_registered) {
+        toast.error('You are not registered for this contest');
+        navigate('/compete');
+        return null;
+      }
+      return data;
     },
-    retry: 1,
+    retry: false,
   });
 
-  // Fetch leaderboard
+  // Fetch leaderboard with auto-refetch every 30 seconds
   const { data: leaderboardData } = useQuery({
     queryKey: ['contestLeaderboard', id],
     queryFn: async () => {
       const response = await competeAPI.getContestLeaderboard(id);
       return response.data;
     },
+    refetchInterval: 30000,
   });
 
   const contest = contestData;
@@ -60,7 +84,7 @@ const Contest = () => {
   useEffect(() => {
     if (!contest?.end_time) return;
     
-    const endTime = new Date(contest.end_time).getTime();
+    const endTime = parseUTC(contest.end_time).getTime();
     
     const timer = setInterval(() => {
       const now = Date.now();
@@ -78,12 +102,12 @@ const Contest = () => {
 
   // Tab Switching Detection - Exam Proctoring
   useEffect(() => {
-    if (!contest || examEnded) return;
+    if (!contest || examEnded || isDisqualified) return;
 
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.hidden) {
         // User switched tabs or minimized window
-        console.log('⚠️ TAB SWITCH DETECTED!');
+        console.log('TAB SWITCH DETECTED!');
         setTabSwitchCount(prev => prev + 1);
         
         // Play beep sound using AudioContext for better browser support
@@ -101,18 +125,23 @@ const Contest = () => {
           
           oscillator.start(audioContext.currentTime);
           oscillator.stop(audioContext.currentTime + 0.2);
-          
-          setTimeout(() => {
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.2);
-          }, 300);
         } catch (error) {
           console.error('Audio error:', error);
         }
         
-        // End exam and give 0 marks
+        // IMMEDIATELY disqualify on backend
         setExamEnded(true);
-        toast.error('⚠️ TAB SWITCHING DETECTED! Exam terminated. You will receive 0 marks.', {
+        setIsDisqualified(true);
+        
+        try {
+          await competeAPI.disqualifyUser(id, {
+            reason: 'Tab switch violation - automatic disqualification'
+          });
+        } catch (err) {
+          console.error('Failed to report disqualification:', err);
+        }
+        
+        toast.error('TAB SWITCHING DETECTED! You have been DISQUALIFIED. Score set to 0.', {
           duration: 5000,
           style: {
             background: '#DC2626',
@@ -134,31 +163,23 @@ const Contest = () => {
       }
     };
 
-    const handleBlur = () => {
-      if (document.hidden) {
-        console.log('Window blur + hidden - tab switch detected');
-      }
-    };
-
     // Add event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
 
     // Log that proctoring is active
-    console.log('🔒 Exam proctoring active - do NOT switch tabs!');
+    console.log('Exam proctoring active - do NOT switch tabs!');
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
     };
-  }, [contest, examEnded, navigate]);
+  }, [contest, examEnded, isDisqualified, navigate, id]);
 
   useEffect(() => {
     if (problems[selectedProblem]?.starter_code) {
-      const starterCode = problems[selectedProblem].starter_code[programmingLanguage];
+      const starterCode = problems[selectedProblem].starter_code[language];
       setCode(starterCode || '');
     }
-  }, [selectedProblem, problems, programmingLanguage]);
+  }, [selectedProblem, problems, language]);
 
   const formatTime = (ms) => {
     const hours = Math.floor(ms / 3600000);
@@ -168,13 +189,18 @@ const Contest = () => {
   };
 
   const handleSubmit = async () => {
+    if (isDisqualified || examEnded) {
+      toast.error('You have been disqualified and cannot submit');
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
       const response = await competeAPI.submitSolution(id, {
         problem_index: selectedProblem,
         code,
-        language: programmingLanguage,
+        language: language,
       });
       
       const result = response.data;
@@ -184,12 +210,24 @@ const Contest = () => {
       }));
       
       if (result.passed) {
-        toast.success(`Problem ${String.fromCharCode(65 + selectedProblem)} accepted!`);
+        toast.success(`Problem ${String.fromCharCode(65 + selectedProblem)} accepted! +${result.points} pts`);
       } else {
-        toast.error('Solution not accepted');
+        const errorMsg = result.errors && result.errors.length > 0 ? result.errors[0] : 'Wrong answer';
+        toast.error(`Not accepted: ${errorMsg}`);
       }
+      
+      // Refetch leaderboard immediately after submission
+      queryClient.invalidateQueries({ queryKey: ['contestLeaderboard', id] });
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Submission failed');
+      const detail = error.response?.data?.detail;
+      if (detail && detail.includes('disqualified')) {
+        setIsDisqualified(true);
+        setExamEnded(true);
+        toast.error('You have been disqualified from this contest');
+        setTimeout(() => navigate('/compete'), 2000);
+      } else {
+        toast.error(detail || 'Submission failed');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -204,9 +242,14 @@ const Contest = () => {
   }
 
   if (!contest) {
+    const errorDetail = contestError?.response?.data?.detail || '';
+    const isBlocked = errorDetail.includes('disqualified') || errorDetail.includes('must register') || errorDetail.includes('not registered');
     return (
       <div className="flex items-center justify-center h-screen flex-col gap-4">
-        <p className="text-gray-400">{contestError ? `Error: ${contestError.response?.data?.detail || contestError.message}` : 'Contest not found'}</p>
+        <p className="text-gray-400">{contestError ? errorDetail || contestError.message : 'Contest not found'}</p>
+        {isBlocked && (
+          <p className="text-red-400 font-semibold">Access denied</p>
+        )}
         <button onClick={() => navigate('/compete')} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
           Back to Contests
         </button>
@@ -350,9 +393,9 @@ const Contest = () => {
         <div className="flex-1 flex flex-col">
           <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
             <select
-              value={programmingLanguage}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
               className="bg-gray-900 border border-gray-700 rounded px-3 py-1 text-gray-300 text-sm"
-              disabled
             >
               <option value="python">Python</option>
               <option value="cpp">C++</option>
@@ -360,7 +403,7 @@ const Contest = () => {
             </select>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || timeLeft === 0}
+              disabled={isSubmitting || timeLeft === 0 || isDisqualified || examEnded}
               className="flex items-center gap-2 px-4 py-1 bg-green-600 text-white rounded hover:bg-green-500 disabled:opacity-50"
             >
               <Send size={16} />
@@ -371,7 +414,7 @@ const Contest = () => {
           <div className="flex-1">
             <Editor
               height="100%"
-              defaultLanguage={programmingLanguage}
+              language={language === 'cpp' ? 'cpp' : language === 'javascript' ? 'javascript' : 'python'}
               theme="vs-dark"
               value={code}
               onChange={(value) => setCode(value || '')}

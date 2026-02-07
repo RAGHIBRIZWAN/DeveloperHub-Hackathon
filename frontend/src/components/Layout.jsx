@@ -25,7 +25,7 @@ const Layout = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const { level, xp, xpToNextLevel, coins, currentStreak, updateGamification, activeTheme, rankTitle } = useGamificationStore();
+  const { level, xp, xpToNextLevel, coins, currentStreak, updateGamification, activeTheme } = useGamificationStore();
 
   // Theme color mapping  
   const THEME_COLORS = {
@@ -115,7 +115,7 @@ const Layout = () => {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-400">Level {level} · {rankTitle}</p>
+              <p className="text-sm text-gray-400">Level {level}</p>
             </div>
           </div>
           

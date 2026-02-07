@@ -105,20 +105,23 @@ async def create_contest(request: CreateContestRequest, admin: dict = Depends(ch
     - Only accessible by admin users
     - Automatically creates notification for all users
     """
-    # Calculate end time
+    # Calculate end time - normalize to naive UTC for consistent storage
     from datetime import timedelta
-    end_time = request.start_time + timedelta(minutes=request.duration_minutes)
+    start_time = request.start_time
+    if start_time.tzinfo is not None:
+        start_time = start_time.astimezone(timezone.utc).replace(tzinfo=None)
+    end_time = start_time + timedelta(minutes=request.duration_minutes)
     
     # Generate slug from title
     import re
     slug = re.sub(r'[^a-z0-9]+', '-', request.title.lower()).strip('-')
-    slug = f"{slug}-{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+    slug = f"{slug}-{datetime.utcnow().strftime('%Y%m%d')}"
     
-    # Determine initial status
-    now = datetime.now(timezone.utc)
-    if request.start_time > now:
+    # Determine initial status using naive UTC comparison
+    now = datetime.utcnow()
+    if start_time > now:
         status_val = "upcoming"
-    elif request.start_time <= now <= end_time:
+    elif start_time <= now <= end_time:
         status_val = "ongoing"
     else:
         status_val = "completed"
@@ -152,7 +155,7 @@ async def create_contest(request: CreateContestRequest, admin: dict = Depends(ch
         title=request.title,
         slug=slug,
         description=request.description,
-        start_time=request.start_time,
+        start_time=start_time,
         end_time=end_time,
         duration_minutes=request.duration_minutes,
         difficulty=request.difficulty,
@@ -171,7 +174,7 @@ async def create_contest(request: CreateContestRequest, admin: dict = Depends(ch
     notification = Notification(
         user_id="all",  # Broadcast to all users
         title=f"🏆 New Contest: {request.title}",
-        message=f"A new {request.difficulty} level contest '{request.title}' is scheduled for {request.start_time.strftime('%B %d, %Y at %I:%M %p')}. Duration: {request.duration_minutes} minutes. {problem_count} problem{'s' if problem_count != 1 else ''} to solve. Don't miss it!",
+        message=f"A new {request.difficulty} level contest '{request.title}' is scheduled for {start_time.strftime('%B %d, %Y at %I:%M %p')} UTC. Duration: {request.duration_minutes} minutes. {problem_count} problem{'s' if problem_count != 1 else ''} to solve. Don't miss it!",
         notification_type=NotificationType.CONTEST_CREATED,
         related_type="contest",
         related_id=str(contest.id),
@@ -239,14 +242,17 @@ async def update_contest(
             detail="Contest not found"
         )
     
-    # Calculate end time
+    # Calculate end time - normalize to naive UTC
     from datetime import timedelta
-    end_time = request.start_time + timedelta(minutes=request.duration_minutes)
+    start_time = request.start_time
+    if start_time.tzinfo is not None:
+        start_time = start_time.astimezone(timezone.utc).replace(tzinfo=None)
+    end_time = start_time + timedelta(minutes=request.duration_minutes)
     
     # Update fields
     contest.title = request.title
     contest.description = request.description
-    contest.start_time = request.start_time
+    contest.start_time = start_time
     contest.end_time = end_time
     contest.duration_minutes = request.duration_minutes
     contest.difficulty = request.difficulty
@@ -262,7 +268,7 @@ async def update_contest(
 
 @router.delete("/contests/{contest_id}")
 async def delete_contest(contest_id: str, admin: dict = Depends(check_admin)):
-    """Delete a contest (soft delete by changing status)."""
+    """Delete a contest. Only upcoming and completed contests can be deleted."""
     try:
         contest = await Contest.get(contest_id)
     except (InvalidId, Exception):
@@ -272,6 +278,16 @@ async def delete_contest(contest_id: str, admin: dict = Depends(check_admin)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Contest not found"
         )
+    
+    if contest.status == "ongoing":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete an ongoing contest. Wait for it to finish or cancel it first."
+        )
+    
+    # Delete all participations for this contest
+    from app.models.contest import ContestParticipation
+    await ContestParticipation.find({"contest_id": str(contest.id)}).delete()
     
     await contest.delete()
     

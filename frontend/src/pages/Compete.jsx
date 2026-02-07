@@ -13,6 +13,7 @@ import {
   Zap,
   Lock,
   CheckCircle,
+  XCircle,
   Timer,
   ExternalLink,
   Loader2,
@@ -29,6 +30,14 @@ const Compete = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [countdowns, setCountdowns] = useState({});
+
+  // Helper: parse server datetime as UTC (server returns naive UTC without 'Z')
+  const parseUTC = (dateStr) => {
+    if (!dateStr) return null;
+    const s = String(dateStr);
+    if (!s.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s + 'Z');
+    return new Date(s);
+  };
 
   // Fetch contests
   const { data: contestsData, isLoading } = useQuery({
@@ -81,10 +90,10 @@ const Compete = () => {
         let diff;
         
         if (activeTab === 'upcoming') {
-          const startTime = new Date(contest.start_time).getTime();
+          const startTime = parseUTC(contest.start_time).getTime();
           diff = startTime - now;
         } else if (activeTab === 'ongoing') {
-          const endTime = new Date(contest.end_time).getTime();
+          const endTime = parseUTC(contest.end_time).getTime();
           diff = endTime - now;
         }
 
@@ -108,7 +117,7 @@ const Compete = () => {
   }, [contests, activeTab]);
 
   const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return parseUTC(dateStr).toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -383,13 +392,24 @@ const Compete = () => {
                       )}
 
                       {activeTab === 'ongoing' && (
-                        <Link
-                          to={`/contest/${contest.id}`}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-500 transition-colors"
-                        >
-                          <Zap size={18} />
-                          Enter Contest
-                        </Link>
+                        isRegistered(contest.id) ? (
+                          <Link
+                            to={`/contest/${contest.id}`}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-500 transition-colors"
+                          >
+                            <Zap size={18} />
+                            Enter Contest
+                          </Link>
+                        ) : (
+                          <button
+                            disabled
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-700 text-gray-500 rounded-lg cursor-not-allowed"
+                            title="You must register before the contest starts"
+                          >
+                            <XCircle size={18} />
+                            Not Registered
+                          </button>
+                        )
                       )}
 
                       {activeTab === 'past' && (

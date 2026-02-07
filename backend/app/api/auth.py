@@ -192,9 +192,18 @@ async def login(request: LoginRequest):
                 detail="Account is deactivated"
             )
         
-        # Update last login (use atomic update for better concurrency)
+        # Update last login and streak
         user.last_login = datetime.utcnow()
-        await User.find_one(User.id == user.id).update({"$set": {"last_login": user.last_login}})
+        user.update_streak()
+        await user.save()
+        
+        # Sync streak to UserRewards
+        rewards = await UserRewards.find_one({"user_id": str(user.id)})
+        if rewards:
+            rewards.current_streak = user.stats.current_streak
+            rewards.longest_streak = user.stats.longest_streak
+            rewards.last_streak_date = user.stats.last_activity_date
+            await rewards.save()
         
         # Create tokens
         token_data = {
@@ -290,6 +299,13 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
     # Sync coins from rewards (source of truth)
     actual_coins = rewards.coin_balance
     
+    # Sync streak: always read from user.stats (source of truth)
+    user.update_streak()
+    await user.save()
+    rewards.current_streak = user.stats.current_streak
+    rewards.longest_streak = user.stats.longest_streak
+    await rewards.save()
+    
     return {
         "id": str(user.id),
         "email": user.email,
@@ -309,8 +325,8 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
         "preferences": user.preferences.dict(),
         "stats": {
             **user.stats.dict(),
-            "current_streak": rewards.current_streak,
-            "longest_streak": rewards.longest_streak
+            "current_streak": user.stats.current_streak,
+            "longest_streak": user.stats.longest_streak
         },
         "created_at": user.created_at
     }

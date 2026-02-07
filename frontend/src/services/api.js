@@ -112,6 +112,7 @@ export const competeAPI = {
   getContest: (id) => api.get(`/compete/contests/${id}`),
   registerContest: (contestId) => api.post(`/compete/contests/${contestId}/register`),
   submitSolution: (contestId, data) => api.post(`/compete/contests/${contestId}/submit`, data),
+  disqualifyUser: (contestId, data) => api.post(`/compete/contests/${contestId}/disqualify`, data),
   getContestLeaderboard: (id, params) => api.get(`/compete/contests/${id}/leaderboard`, { params }),
   getLeaderboard: (params) => api.get('/compete/leaderboard', { params }),
   getUserContestHistory: (userId) => api.get(`/compete/user/${userId}/contests`),

@@ -5,9 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   User, 
   Mail,
-  BookOpen,
-  Code,
   Trophy,
+  Code,
   Flame,
   Star,
   Settings,
@@ -15,7 +14,8 @@ import {
   Save,
   Award,
   Loader2,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useGamificationStore } from '../stores/gamificationStore';
@@ -26,7 +26,7 @@ import toast from 'react-hot-toast';
 const Profile = () => {
   const { t } = useTranslation();
   const { user, updateUser } = useAuthStore();
-  const { level, xp, xpToNextLevel, coins, currentStreak, badges, updateGamification, rankTitle } = useGamificationStore();
+  const { level, xp, xpToNextLevel, coins, currentStreak, badges, updateGamification } = useGamificationStore();
   const { programmingLanguage, setProgrammingLanguage } = useSettingsStore();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -42,6 +42,22 @@ const Profile = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const [showPhotoPreview, setShowPhotoPreview] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+
+  // Fetch fresh user profile (for up-to-date stats)
+  const { data: profileData } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const response = await authAPI.getProfile();
+      return response.data;
+    },
+  });
+
+  // Sync fresh profile data into auth store
+  useEffect(() => {
+    if (profileData) {
+      updateUser(profileData);
+    }
+  }, [profileData, updateUser]);
 
   // Fetch gamification data
   const { data: gamifyData } = useQuery({
@@ -142,7 +158,7 @@ const Profile = () => {
   };
 
   const stats = [
-    { icon: BookOpen, label: 'Lessons Completed', value: user?.stats?.total_lessons_completed || 0, color: 'text-blue-400' },
+    { icon: Zap, label: 'Rating', value: user?.rating || 1000, color: 'text-blue-400' },
     { icon: Code, label: 'Challenges Solved', value: user?.stats?.total_challenges_solved || 0, color: 'text-purple-400' },
     { icon: Trophy, label: 'Contests Won', value: user?.stats?.total_contests_won || 0, color: 'text-yellow-400' },
     { icon: Flame, label: 'Current Streak', value: currentStreak || 0, color: 'text-orange-400' },
@@ -291,8 +307,8 @@ const Profile = () => {
                   <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
                     Level {level}
                   </span>
-                  <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm">
-                    {rankTitle}
+                  <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm">
+                    Rating: {user?.rating || 1000}
                   </span>
                 </div>
                 <p className="text-gray-400">@{user?.username}</p>

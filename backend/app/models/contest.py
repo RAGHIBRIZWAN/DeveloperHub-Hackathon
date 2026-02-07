@@ -110,6 +110,11 @@ class ContestParticipation(Document):
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
     
+    # Disqualification
+    is_disqualified: bool = False
+    disqualified_at: Optional[datetime] = None
+    disqualification_reason: Optional[str] = None
+    
     # Submissions per problem
     problem_submissions: List[dict] = Field(default_factory=list)
     # Each: {problem_order, submissions: [], best_submission_id, points, time}

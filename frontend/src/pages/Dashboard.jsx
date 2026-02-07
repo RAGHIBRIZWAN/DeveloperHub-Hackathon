@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  BookOpen, 
   Code, 
   Trophy, 
   Flame, 
@@ -14,11 +13,12 @@ import {
   Target,
   Gift,
   GitBranch,
-  Database
+  Database,
+  Zap
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useGamificationStore } from '../stores/gamificationStore';
-import { lessonsAPI, gamifyAPI } from '../services/api';
+import { lessonsAPI, gamifyAPI, authAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 // Static module definitions for the new course structure
@@ -63,7 +63,7 @@ const MODULES = [
 
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const { 
     level, xp, xpToNextLevel, coins, currentStreak,
     updateGamification 
@@ -75,6 +75,15 @@ const Dashboard = () => {
   const { data: gamifyData } = useQuery({
     queryKey: ['gamification'],
     queryFn: () => gamifyAPI.getProfile(),
+  });
+
+  // Fetch fresh user profile (for up-to-date stats like contests participated)
+  const { data: profileData } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const response = await authAPI.getProfile();
+      return response.data;
+    },
   });
 
   // Fetch user progress
@@ -95,6 +104,13 @@ const Dashboard = () => {
     }
   }, [gamifyData, updateGamification]);
 
+  // Sync fresh profile data into auth store
+  useEffect(() => {
+    if (profileData) {
+      updateUser(profileData);
+    }
+  }, [profileData, updateUser]);
+
   const handleClaimDaily = async () => {
     try {
       const response = await gamifyAPI.claimDailyReward();
@@ -113,7 +129,7 @@ const Dashboard = () => {
 
   const quickActions = [
     {
-      icon: BookOpen,
+      icon: Target,
       title: 'Continue Learning',
       titleUr: 'سیکھنا جاری رکھیں',
       description: 'Pick up where you left off',
@@ -184,12 +200,12 @@ const Dashboard = () => {
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <BookOpen className="text-blue-400" size={20} />
+              <Trophy className="text-blue-400" size={20} />
             </div>
             <div>
-              <p className="text-gray-400 text-sm">Lessons</p>
+              <p className="text-gray-400 text-sm">Contests</p>
               <p className="text-white text-xl font-bold">
-                {progress.completed_lessons || 0}
+                {user?.stats?.total_contests_participated || 0}
               </p>
             </div>
           </div>
