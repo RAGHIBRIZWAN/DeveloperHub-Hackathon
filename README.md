@@ -1,135 +1,35 @@
-<<<<<<< HEAD
-# 🎮 CodeHub: The Future of Gamified Coding
-
-![Status](https://img.shields.io/badge/Status-Prototype-orange)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-> **"CodeHub is not just another coding site. It is a cultural bridge and a gamified ecosystem."**
-
-CodeHub is a next-generation educational platform designed to democratize programming education in Pakistan and beyond. We solve the engagement crisis in CS education by combining gamified learning paths, **Agentic AI tutoring in native languages (Urdu/English)**, and industry-standard compilation.
-
----
-
-## ✨ The Solution
-
-We transform the traditional learning lifecycle into a **Game Loop**:
-
-`Learn` ➡️ `Practice` ➡️ `Compete` ➡️ `Reward`
-
-### 💥 The Problem We Solve
-| The Pain Point 🛑 | The CodeHub Fix ✅ |
-| :--- | :--- |
-| **Engagement Gap** | Gamified "Minecraft-style" worlds & visual rewards. |
-| **Language Barrier** | **Bilingual AI Agents** that speak Urdu & English. |
-| **Generic AI Help** | Context-aware hints, not just answer-dumping. |
-| **Cheating** | Browser-based **Face Detection** & Focus Tracking. |
-
----
-
-## 🚀 Key Features
-
-### 🤖 Agentic AI Tutors
-* **Voice Explanations:** Powered by **Uplift/Whisper**, our AI explains concepts and reviews code in natural-sounding Urdu and English.
-* **Smart Intervention:** The AI detects syntax errors and speaks to the user (e.g., *"Apne semicolon miss kiya hai line 4 par"*).
-
-### 💻 Multi-Language Code Studio
-* **Languages:** C++, Python, JavaScript.
-* **Editor:** Professional **Monaco Editor** (VS Code experience).
-* **Engine:** Integrated **Judge0 API** for rapid, sandboxed execution.
-
-### 🛡️ AI Proctoring & Security
-* **Visual Monitoring:** Uses **MediaPipe** for face detection to verify user presence.
-* **Focus Tracking:** Detects tab switching and copy/paste attempts during exams.
-
-### 🧩 RAG-Based Dynamic MCQs
-* Intelligent scrapers gather real-time data to generate fresh, theoretically sound multiple-choice questions on the fly.
-
----
-
-## 🛠️ Tech Stack
-
-We utilize a modern, decoupled architecture for scalability.
-
-### **Frontend**
-![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-
-### **Backend & AI**
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Groq](https://img.shields.io/badge/AI-Groq%20%2F%20Gemini-orange?style=for-the-badge)
-![Judge0](https://img.shields.io/badge/Compiler-Judge0-red?style=for-the-badge)
-
-### **Database & Tools**
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-Authentication-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
-
----
-
-## 🗺️ The User Journey (Demo Flow)
-
-<details>
-<summary><strong>Click to expand the full Student Experience 🔽</strong></summary>
-
-1.  **Onboarding:** User selects a language track (e.g., Python) and an instruction language (e.g., Urdu).
-2.  **The Lesson:** User enters the "Minecraft" world. They face a theoretical MCQ about Classes.
-3.  **The Challenge:** User is asked to write a class for a "Creeper".
-4.  **The Error:** User makes a syntax error.
-5.  **The Agent Intervention:** The AI Agent speaks: *"Apne semicolon miss kiya hai line 4 par"* (You missed a semicolon on line 4).
-6.  **The Success:** Code compiles via Judge0. User earns Coins and unlocks the next level.
-7.  **The Exam:** User enters "Exam Mode." Webcam activates for proctoring. Tab switching is disabled.
-
-</details>
-=======
-# 🎓 CodeHub - Gamified Programming Education Platform
+# 🎓 CodeHub - AI-Powered Programming Education Platform
 
 <div align="center">
 
 ![CodeHub Banner](https://img.shields.io/badge/CodeHub-AI%20Powered%20Learning-blue?style=for-the-badge&logo=python)
 
-**Learn → Practice → Compete → Reward**
+**Learn → Practice → Compete → Excel**
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python)](https://python.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb)](https://mongodb.com/)
 [![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens)](https://jwt.io/)
 
-*Bilingual AI-Powered Programming Education for Pakistan and Beyond*
+*AI-Powered Programming Education for Aspiring Developers*
 
-</div>
-
----
+</div>---
 
 ## 🌟 Overview
 
 CodeHub is a next-generation learning platform that teaches **C++, Python, and JavaScript** through:
 
-- 🎮 **Gamified Lessons** - Learn with coins, badges, levels, and themes
-- 🤖 **AI Tutoring** - Bilingual (Urdu/English) voice explanations
+- 💻 **Interactive Learning** - Structured lessons with hands-on coding exercises
+- 🤖 **AI Tutoring** - Intelligent assistance and code explanations
 - 💻 **Real-time Code Execution** - Integrated Monaco Editor with Judge0
-- 📝 **MCQ Assessments** - RAG-based dynamic question generation
+- 📝 **MCQ Assessments** - Dynamic question generation
 - 🏆 **Competitive Programming** - Contests and leaderboards
 - 👁️ **AI Proctoring** - Secure exam monitoring
->>>>>>> dbdd17e (frontend + backend)
 
 ---
 
 ## 🏗️ System Architecture
 
-<<<<<<< HEAD
-* **Frontend:** React 19 + Vite for high-performance UI.
-* **Backend:** Python + Javascript (Async handling).
-* **AI Engine:** Groq/Gemini for logic + Uplift/Whisper for Voice.
-* **Execution:** Judge0 for secure, sandboxed code testing.
-
----
-
-## 🔮 Future Roadmap (Add-Ons)
-
-- [ ] **Competitive Arena:** Real-time timed coding battles.
-- [ ] **Leaderboards:** Global and friend-based rankings.
-- [ ] **Marketplace:** Use earned "Coins" to buy visual themes.
-=======
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                           CLIENT LAYER                                   │
@@ -137,8 +37,8 @@ CodeHub is a next-generation learning platform that teaches **C++, Python, and J
 │  │  React 19 + Vite + Monaco Editor + TailwindCSS                   │   │
 │  │  ├── Authentication (JWT + MongoDB)                              │   │
 │  │  ├── Code Editor (Monaco + Judge0 Integration)                   │   │
-│  │  ├── AI Tutor Chat (Voice + Text, Urdu/English)                 │   │
-│  │  ├── Gamification Dashboard (Coins, Badges, Levels)             │   │
+│  │  ├── AI Tutor Chat (Text-based Assistance)                       │   │
+│  │  ├── Learning Dashboard (Progress Tracking)                      │   │
 │  │  ├── Exam Proctoring (MediaPipe + Tab Tracking)                 │   │
 │  │  └── Competitive Programming Arena                               │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
@@ -152,11 +52,10 @@ CodeHub is a next-generation learning platform that teaches **C++, Python, and J
 │  │  ├── /api/auth/* - Authentication & User Management              │   │
 │  │  ├── /api/lessons/* - Course Content & Progress                  │   │
 │  │  ├── /api/code/* - Code Execution & Validation                   │   │
-│  │  ├── /api/ai/* - AI Tutor & Voice Services                       │   │
-│  │  ├── /api/mcq/* - RAG-based Question Generation                  │   │
+│  │  ├── /api/ai/* - AI Tutor Services                               │   │
+│  │  ├── /api/mcq/* - Question Generation                            │   │
 │  │  ├── /api/compete/* - Contests & Leaderboards                    │   │
-│  │  ├── /api/gamify/* - Rewards & Achievements                      │   │
-│  │  └── /api/proctor/* - Exam Monitoring                            │   │
+│  │  └── /api/admin/* - Administration                               │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -171,15 +70,10 @@ CodeHub is a next-generation learning platform that teaches **C++, Python, and J
 │ │ - Concept Tutor │ │ │ │ - JS Executor   │ │ │ │ - Submissions   │ │
 │ ├─────────────────┤ │ │ │ - Sandboxed     │ │ │ ├─────────────────┤ │
 │ │ Gemini AI       │ │ │ │ - Hidden Tests  │ │ │ │ MongoDB Atlas   │ │
-│ │ - RAG MCQ Gen   │ │ │ └─────────────────┘ │ │ │ - Leaderboards  │ │
+│ │ - MCQ Gen       │ │ │ └─────────────────┘ │ │ │ - Leaderboards  │ │
 │ │ - Content Gen   │ │ └─────────────────────┘ │ │ - Contests      │ │
-│ ├─────────────────┤ │                         │ └─────────────────┘ │
-│ │ Voice AI        │ │                         │ └─────────────────┘ │
-│ │ - Whisper STT   │ │                         └─────────────────────┘
-│ │ - Voice Uplift  │ │
-│ │ - Urdu/English  │ │
-│ └─────────────────┘ │
-└─────────────────────┘
+│ └─────────────────┘ │                         │ └─────────────────┘ │
+└─────────────────────┘                         └─────────────────────┘
 ```
 
 ---
@@ -195,11 +89,10 @@ codehub/
 │   │   ├── features/               # Feature modules
 │   │   │   ├── auth/               # Authentication
 │   │   │   ├── editor/             # Monaco Code Editor
-│   │   │   ├── ai-tutor/           # AI Chat & Voice
+│   │   │   ├── ai-tutor/           # AI Chat Interface
 │   │   │   ├── lessons/            # Course content
 │   │   │   ├── mcq/                # MCQ assessments
 │   │   │   ├── compete/            # Competitive programming
-│   │   │   ├── gamification/       # Rewards system
 │   │   │   └── proctoring/         # Exam monitoring
 │   │   ├── hooks/                  # Custom React hooks
 │   │   ├── services/               # API services
@@ -216,8 +109,7 @@ codehub/
 │   │   │   ├── ai/                 # AI services
 │   │   │   ├── mcq/                # MCQ generation
 │   │   │   ├── compete/            # Competitions
-│   │   │   ├── gamify/             # Gamification
-│   │   │   └── proctor/            # Proctoring
+│   │   │   └── admin/              # Administration
 │   │   ├── core/                   # Core configurations
 │   │   ├── models/                 # Database models
 │   │   ├── schemas/                # Pydantic schemas
@@ -225,11 +117,6 @@ codehub/
 │   │   └── utils/                  # Utilities
 │   ├── requirements.txt
 │   └── main.py
-│
-├── 📂 ai-services/                 # AI Microservices
-│   ├── tutor/                      # AI Tutor service
-│   ├── mcq-generator/              # RAG MCQ generation
-│   └── voice/                      # Voice processing
 │
 ├── 📂 docs/                        # Documentation
 │   ├── api/                        # API documentation
@@ -291,30 +178,29 @@ cd backend && uvicorn main:app --reload
 - **Hidden Test Cases** for coding challenges
 - **Real-time Feedback** on code submission
 
-### 2. 🤖 Agentic AI Tutor
-- **Bilingual Support** - Urdu and English
-- **Voice Explanations** - Whisper STT + Voice Uplift TTS
-- **Context-Aware Help** - Understands current lesson and code
-- **Beginner-Friendly** - Simple explanations for complex concepts
+### 2. 🤖 AI Tutor
+- **Intelligent Assistance** - Context-aware help and explanations
+- **Code Analysis** - Automatic error detection and suggestions
+- **Concept Explanations** - Clear explanations for complex topics
+- **Beginner-Friendly** - Simple explanations for all skill levels
 
-### 3. 📝 RAG-Based MCQ Generation
-- **Dynamic Questions** - Generated from real-world data
-- **Syllabus-Aligned** - Follows curriculum standards
+### 3. 📝 Dynamic MCQ Generation
+- **Smart Questions** - Auto-generated from curriculum content
+- **Syllabus-Aligned** - Follows course structure
 - **Difficulty Scaling** - Adapts to student level
-- **Fresh Content** - No repeated questions
+- **Varied Content** - Fresh questions for each session
 
-### 4. 🎮 Gamification System
-- **Coins** - Earn by completing lessons and challenges
-- **Badges** - Unlock achievements
-- **Levels** - Progress through ranks
-- **Themes** - Unlock custom UI themes
-- **Streaks** - Daily learning rewards
+### 4. 🎯 Progress Tracking
+- **Learning Dashboard** - Visual overview of progress
+- **Performance Analytics** - Track improvement over time
+- **Module Completion** - Monitor course advancement
+- **Achievement System** - Recognize milestones
 
 ### 5. 🏆 Competitive Programming
 - **Live Contests** - Real-time competitions
 - **Leaderboards** - Global and local rankings
 - **Problem Archive** - Practice past problems
-- **Rating System** - ELO-based ratings
+- **Rating System** - Track competitive performance
 
 ### 6. 👁️ AI Proctoring
 - **Face Detection** - MediaPipe-based monitoring
@@ -336,24 +222,12 @@ cd backend && uvicorn main:app --reload
 
 ---
 
-## 🌐 Bilingual Support
-
-| Feature | English | Urdu |
-|---------|---------|------|
-| UI Text | ✅ | ✅ |
-| AI Responses | ✅ | ✅ |
-| Voice Explanations | ✅ | ✅ |
-| Error Messages | ✅ | ✅ |
-| MCQ Questions | ✅ | ✅ |
-
----
-
 ## 📊 User Journey
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                        USER ONBOARDING                            │
-│  1. Sign Up → 2. Select Languages → 3. Choose Path → 4. Start   │
+│  1. Sign Up → 2. Select Track → 3. Set Goals → 4. Start         │
 └──────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -367,8 +241,8 @@ cd backend && uvicorn main:app --reload
 │                                                       │          │
 │                                                       ▼          │
 │                                              ┌─────────────┐     │
-│                                              │ 🎁 Rewards  │     │
-│                                              │ Coins/Badge │     │
+│                                              │ ✅ Progress │     │
+│                                              │ Tracking    │     │
 │                                              └─────────────┘     │
 └──────────────────────────────────────────────────────────────────┘
                                 │
@@ -386,22 +260,21 @@ cd backend && uvicorn main:app --reload
 | Layer | Technology | Purpose |
 |-------|------------|---------|
 | Frontend | React 19 + Vite | Fast, modern UI |
-| Editor | Monaco Editor | Code editing |
+| Editor | Monaco Editor | Professional code editing |
 | Styling | TailwindCSS | Responsive design |
 | State | Zustand | State management |
 | Backend | FastAPI | High-performance API |
-| Auth | JWT + MongoDB | Authentication |
-| Database | MongoDB Atlas | User data, progress |
+| Auth | JWT + MongoDB | Secure authentication |
+| Database | MongoDB Atlas | User data & progress |
 | Code Exec | Judge0 | Sandboxed execution |
-| AI LLM | Groq + Gemini | AI tutoring |
-| Voice | Whisper + Voice Uplift | Speech processing |
+| AI | Groq + Gemini | Intelligent tutoring |
 | Proctoring | MediaPipe | Face detection |
 
 ---
 
-## 👥 Team AI CHAMPS
+## 👥 Team
 
-Building the future of programming education in Pakistan 🇵🇰
+Building the future of programming education 🚀
 
 ---
 
@@ -415,7 +288,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 **Made with ❤️ by Team AI CHAMPS**
 
-*Empowering the next generation of Pakistani developers*
+*Empowering the next generation of developers*
 
 </div>
->>>>>>> dbdd17e (frontend + backend)

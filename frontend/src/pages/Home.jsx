@@ -142,15 +142,9 @@ const Home = () => {
       color: 'from-yellow-500 to-orange-500',
     },
     {
-      icon: Gift,
-      title: t('home.features.reward'),
-      description: 'Earn coins, collect badges, and unlock exclusive themes',
-      color: 'from-green-500 to-emerald-500',
-    },
-    {
       icon: Brain,
       title: 'AI Tutoring',
-      description: 'Bilingual AI tutor in English & Urdu with voice explanations',
+      description: 'Get instant help with code explanations and concept clarifications',
       color: 'from-indigo-500 to-violet-500',
     },
     {
@@ -158,6 +152,12 @@ const Home = () => {
       title: 'Proctored Exams',
       description: 'Fair, AI-monitored assessments with anti-cheating safeguards',
       color: 'from-rose-500 to-red-500',
+    },
+    {
+      icon: Users,
+      title: 'Community Learning',
+      description: 'Join a growing community of learners and share your progress',
+      color: 'from-teal-500 to-cyan-500',
     },
   ];
 
@@ -170,15 +170,15 @@ const Home = () => {
 
   const showcaseItems = [
     { icon: Zap, title: 'Real-Time Code Execution', description: 'Write, run, and debug code in our built-in editor with instant feedback from Judge0.', parallax: [30, -30] },
-    { icon: Globe, title: 'Bilingual Experience', description: 'Full English & Urdu interface with AI-powered voice explanations in both languages.', parallax: [60, -60] },
-    { icon: Users, title: 'Community Contests', description: 'Compete in live programming contests, earn XP, and rise through the ranks.', parallax: [20, -20] },
+    { icon: Brain, title: 'AI-Powered Learning', description: 'Get personalized help and explanations from our intelligent AI tutor.', parallax: [60, -60] },
+    { icon: Users, title: 'Community Contests', description: 'Compete in live programming contests and rise through the ranks.', parallax: [20, -20] },
   ];
 
   const trustSignals = [
     'AI-Powered Learning',
-    'Bilingual Support',
-    'Gamified Experience',
     'Real-Time Feedback',
+    'Secure Proctoring',
+    'Live Competitions',
   ];
 
   return (
@@ -218,8 +218,8 @@ const Home = () => {
             {/* Subheading */}
             <MotionWrapper delay={0.3}>
               <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-                Master C++, Python, and JavaScript through gamified lessons, 
-                live contests, and bilingual AI tutoring — in English & Urdu.
+                Master C++, Python, and JavaScript through interactive lessons, 
+                live contests, and AI-powered tutoring.
               </p>
             </MotionWrapper>
 
@@ -281,7 +281,7 @@ const Home = () => {
             </MotionWrapper>
             <MotionWrapper delay={0.15}>
               <p className="text-slate-400 max-w-xl mx-auto">
-                A complete gamified learning cycle designed to take you from beginner to pro.
+                A complete learning cycle designed to take you from beginner to pro.
               </p>
             </MotionWrapper>
           </div>
@@ -311,8 +311,8 @@ const Home = () => {
               </MotionWrapper>
               <MotionWrapper delay={0.15}>
                 <p className="text-slate-400 leading-relaxed mb-8">
-                  CodeHub combines AI tutoring, gamification, and bilingual support 
-                  to create an immersive learning experience unique to Pakistan's tech ecosystem.
+                  CodeHub combines AI tutoring, real-time code execution, and secure proctoring 
+                  to create an immersive learning experience for aspiring developers.
                 </p>
               </MotionWrapper>
               <MotionWrapper delay={0.2}>
@@ -357,8 +357,8 @@ const Home = () => {
                   </h2>
                   <ul className="space-y-4">
                     {[
-                      'Bilingual support (English & Urdu)',
-                      'Voice explanation of concepts',
+                      'Intelligent code analysis and suggestions',
+                      'Context-aware explanations',
                       'Real-time code error detection',
                       'Simple explanations for beginners',
                     ].map((item) => (
@@ -384,10 +384,10 @@ const Home = () => {
                   </div>
                   <div className="flex gap-2">
                     <button className="flex-1 py-2.5 text-sm font-medium rounded-lg glass text-accent-indigo hover:bg-white/5 transition-colors cursor-pointer">
-                      Ask by Voice
+                      Ask Question
                     </button>
                     <button className="flex-1 py-2.5 text-sm font-medium rounded-lg glass text-accent-violet hover:bg-white/5 transition-colors cursor-pointer">
-                      Listen
+                      Get Help
                     </button>
                   </div>
                 </div>
@@ -410,7 +410,7 @@ const Home = () => {
                 </h2>
                 <p className="text-lg text-slate-400 max-w-xl mx-auto mb-8">
                   Join thousands of students learning to code with AI-powered tools,
-                  gamified challenges, and bilingual support.
+                  real-time code execution, and competitive challenges.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
