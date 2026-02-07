@@ -1,20 +1,18 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { useEffect } from 'react';
+import { memo } from 'react';
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, initializeAuth } = useAuthStore();
+const ProtectedRoute = memo(({ children }) => {
+  const { isAuthenticated } = useAuthStore();
   const location = useLocation();
-
-  useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return children;
-};
+});
+
+ProtectedRoute.displayName = 'ProtectedRoute';
 
 export default ProtectedRoute;

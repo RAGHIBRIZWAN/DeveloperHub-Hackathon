@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export const useSettingsStore = create(
   persist(
@@ -36,6 +36,7 @@ export const useSettingsStore = create(
     }),
     {
       name: 'codehub-settings',
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         programmingLanguage: state.programmingLanguage,
         theme: state.theme,

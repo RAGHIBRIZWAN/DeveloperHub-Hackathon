@@ -305,7 +305,7 @@ const Contest = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Problem List Sidebar */}
         <div className="w-16 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-4 gap-2">
-          {problems.map((_, index) => (
+          {problems.map((problem, index) => (
             <button
               key={index}
               onClick={() => setSelectedProblem(index)}

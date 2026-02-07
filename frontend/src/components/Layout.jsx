@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useMemo, memo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Home, 
@@ -21,61 +21,79 @@ import { useAuthStore } from '../stores/authStore';
 import { useGamificationStore } from '../stores/gamificationStore';
 import { gamifyAPI } from '../services/api';
 
+// Memoize theme colors constant
+const THEME_COLORS = {
+  default: { sidebar: 'bg-gray-800', accent: 'from-blue-500 to-purple-600', border: 'border-gray-700', bg: 'bg-gray-900' },
+  dark: { sidebar: 'bg-gray-950', accent: 'from-gray-600 to-gray-800', border: 'border-gray-800', bg: 'bg-black' },
+  nature: { sidebar: 'bg-emerald-950', accent: 'from-green-500 to-emerald-600', border: 'border-emerald-800', bg: 'bg-gray-900' },
+  ocean: { sidebar: 'bg-sky-950', accent: 'from-sky-500 to-blue-600', border: 'border-sky-800', bg: 'bg-gray-900' },
+  sunset: { sidebar: 'bg-orange-950', accent: 'from-orange-500 to-red-600', border: 'border-orange-800', bg: 'bg-gray-900' },
+  galaxy: { sidebar: 'bg-violet-950', accent: 'from-violet-500 to-purple-600', border: 'border-violet-800', bg: 'bg-gray-900' },
+  pakistan: { sidebar: 'bg-green-950', accent: 'from-green-600 to-green-800', border: 'border-green-800', bg: 'bg-gray-900' },
+  gold: { sidebar: 'bg-yellow-950', accent: 'from-yellow-500 to-amber-600', border: 'border-yellow-800', bg: 'bg-gray-900' },
+};
+
 const Layout = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const { user, logout } = useAuthStore();
   const { level, xp, xpToNextLevel, coins, currentStreak, updateGamification, activeTheme } = useGamificationStore();
 
-  // Theme color mapping  
-  const THEME_COLORS = {
-    default: { sidebar: 'bg-gray-800', accent: 'from-blue-500 to-purple-600', border: 'border-gray-700', bg: 'bg-gray-900' },
-    dark: { sidebar: 'bg-gray-950', accent: 'from-gray-600 to-gray-800', border: 'border-gray-800', bg: 'bg-black' },
-    nature: { sidebar: 'bg-emerald-950', accent: 'from-green-500 to-emerald-600', border: 'border-emerald-800', bg: 'bg-gray-900' },
-    ocean: { sidebar: 'bg-sky-950', accent: 'from-sky-500 to-blue-600', border: 'border-sky-800', bg: 'bg-gray-900' },
-    sunset: { sidebar: 'bg-orange-950', accent: 'from-orange-500 to-red-600', border: 'border-orange-800', bg: 'bg-gray-900' },
-    galaxy: { sidebar: 'bg-violet-950', accent: 'from-violet-500 to-purple-600', border: 'border-violet-800', bg: 'bg-gray-900' },
-    pakistan: { sidebar: 'bg-green-950', accent: 'from-green-600 to-green-800', border: 'border-green-800', bg: 'bg-gray-900' },
-    gold: { sidebar: 'bg-yellow-950', accent: 'from-yellow-500 to-amber-600', border: 'border-yellow-800', bg: 'bg-gray-900' },
-  };
-  const themeStyle = THEME_COLORS[activeTheme] || THEME_COLORS.default;
+  const themeStyle = useMemo(() => THEME_COLORS[activeTheme] || THEME_COLORS.default, [activeTheme]);
 
-  // Fetch gamification data
+  // Fetch gamification data with optimized caching
   const { data: gamifyData } = useQuery({
-    queryKey: ['gamification'],
+    queryKey: ['gamification', user?.id],
     queryFn: async () => {
       const response = await gamifyAPI.getProfile();
       return response.data;
     },
+    staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
+    cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    enabled: !!user?.id, // Only fetch if user is logged in
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on mount if data exists
   });
 
-  // Update gamification store when data is fetched
+  // Update gamification store when data is fetched (optimized)
   useEffect(() => {
-    if (gamifyData) {
+    if (gamifyData && JSON.stringify(gamifyData) !== JSON.stringify({
+      level, xp, coins, currentStreak
+    })) {
       updateGamification(gamifyData);
     }
-  }, [gamifyData, updateGamification]);
+  }, [gamifyData]); // Removed updateGamification from deps to prevent loops
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'admin';
+  // Check if user is admin (memoized)
+  const isAdmin = useMemo(() => user?.role === 'admin', [user?.role]);
 
-  // Base navigation items for regular users
-  const userNavItems = [
+  // Navigation items (memoized)
+  const userNavItems = useMemo(() => [
     { path: '/dashboard', icon: Home, label: t('nav.home') },
     { path: '/courses', icon: BookOpen, label: t('nav.learn') },
     { path: '/compete', icon: Trophy, label: t('nav.compete') },
     { path: '/leaderboard', icon: Star, label: t('compete.leaderboard') },
     { path: '/shop', icon: ShoppingBag, label: t('nav.shop') },
     { path: '/profile', icon: User, label: t('nav.profile') },
-  ];
+  ], [t]);
 
-  // Admin users only see Admin tab
-  const adminNavItems = [
+  const adminNavItems = useMemo(() => [
     { path: '/admin', icon: Shield, label: t('nav.admin') || 'Admin' },
-  ];
+  ], [t]);
 
   // Use admin nav items for admin, regular nav items for others
   const navItems = isAdmin ? adminNavItems : userNavItems;
+
+  // Memoized logout handler
+  const handleLogout = useCallback(() => {
+    logout();
+  }, [logout]);
+
+  // Memoized XP percentage
+  const xpPercentage = useMemo(() => 
+    (xp / xpToNextLevel) * 100, 
+    [xp, xpToNextLevel]
+  );
 
   return (
     <div className={`min-h-screen ${themeStyle.bg} text-white flex`}>
@@ -128,8 +146,8 @@ const Layout = () => {
             <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
               <motion.div 
                 className={`h-full bg-gradient-to-r ${themeStyle.accent}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${(xp / xpToNextLevel) * 100}%` }}
+                initial={false}
+                animate={{ width: `${xpPercentage}%` }}
                 transition={{ duration: 0.5 }}
               />
             </div>
@@ -176,7 +194,7 @@ const Layout = () => {
         <div className={`p-4 border-t ${themeStyle.border}`}>
           {/* Logout */}
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-2 w-full text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-lg transition-colors"
           >
             <LogOut size={20} />
