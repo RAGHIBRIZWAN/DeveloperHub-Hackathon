@@ -276,7 +276,6 @@ cd backend && uvicorn main:app --reload
 ### Muhammad Umar
 ### Adina Faraz
 ### Syeda Sara Ali
-Building the future of programming education 🚀
 
 ---
 
