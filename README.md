@@ -271,7 +271,11 @@ cd backend && uvicorn main:app --reload
 ---
 
 ## 👥 Team
-
+# Raghib Rizwan Rabani
+# Muhammad Ali Hadi
+# Muhammad Umar
+# Adina Faraz
+# Syeda Sara Ali
 Building the future of programming education 🚀
 
 ---
