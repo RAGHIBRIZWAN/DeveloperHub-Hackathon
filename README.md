@@ -174,7 +174,6 @@ cd backend && uvicorn main:app --reload
 
 ### 1. 🎯 Multi-Language Code Editor
 - **Monaco Editor** with syntax highlighting for C++, Python, JavaScript
-- **Judge0 Integration** for secure, sandboxed code execution
 - **Hidden Test Cases** for coding challenges
 - **Real-time Feedback** on code submission
 
@@ -203,7 +202,6 @@ cd backend && uvicorn main:app --reload
 - **Rating System** - Track competitive performance
 
 ### 6. 👁️ AI Proctoring
-- **Face Detection** - MediaPipe-based monitoring
 - **Tab Switch Tracking** - Detects when students leave exam
 - **Copy-Paste Detection** - Prevents code copying
 - **Focus Monitoring** - Ensures attention on exam
