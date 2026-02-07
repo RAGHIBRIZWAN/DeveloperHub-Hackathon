@@ -28,6 +28,43 @@ CodeHub is a next-generation learning platform that teaches **C++, Python, and J
 
 ---
 
+## 🔑 Key Features
+
+### 1. 🎯 Multi-Language Code Editor
+- **Monaco Editor** with syntax highlighting for C++, Python, JavaScript
+- **Hidden Test Cases** for coding challenges
+- **Real-time Feedback** on code submission
+
+### 2. 🤖 AI Tutor
+- **Intelligent Assistance** - Context-aware help and explanations
+- **Code Analysis** - Automatic error detection and suggestions
+- **Concept Explanations** - Clear explanations for complex topics
+- **Beginner-Friendly** - Simple explanations for all skill levels
+
+### 3. 📝 Dynamic MCQ Generation
+- **Smart Questions** - Auto-generated from curriculum content
+- **Syllabus-Aligned** - Follows course structure
+- **Difficulty Scaling** - Adapts to student level
+- **Varied Content** - Fresh questions for each session
+
+### 4. 🎯 Progress Tracking
+- **Learning Dashboard** - Visual overview of progress
+- **Performance Analytics** - Track improvement over time
+- **Module Completion** - Monitor course advancement
+- **Achievement System** - Recognize milestones
+
+### 5. 🏆 Competitive Programming
+- **Live Contests** - Real-time competitions
+- **Leaderboards** - Global and local rankings
+- **Problem Archive** - Practice past problems
+- **Rating System** - Track competitive performance
+
+### 6. 👁️ AI Proctoring
+- **Tab Switch Tracking** - Detects when students leave exam
+- **Copy-Paste Detection** - Prevents code copying
+- **Focus Monitoring** - Ensures attention on exam
+
+
 ## 🏗️ System Architecture
 
 ```
@@ -168,42 +205,6 @@ cd backend && uvicorn main:app --reload
 ```
 
 ---
-
-## 🔑 Key Features
-
-### 1. 🎯 Multi-Language Code Editor
-- **Monaco Editor** with syntax highlighting for C++, Python, JavaScript
-- **Hidden Test Cases** for coding challenges
-- **Real-time Feedback** on code submission
-
-### 2. 🤖 AI Tutor
-- **Intelligent Assistance** - Context-aware help and explanations
-- **Code Analysis** - Automatic error detection and suggestions
-- **Concept Explanations** - Clear explanations for complex topics
-- **Beginner-Friendly** - Simple explanations for all skill levels
-
-### 3. 📝 Dynamic MCQ Generation
-- **Smart Questions** - Auto-generated from curriculum content
-- **Syllabus-Aligned** - Follows course structure
-- **Difficulty Scaling** - Adapts to student level
-- **Varied Content** - Fresh questions for each session
-
-### 4. 🎯 Progress Tracking
-- **Learning Dashboard** - Visual overview of progress
-- **Performance Analytics** - Track improvement over time
-- **Module Completion** - Monitor course advancement
-- **Achievement System** - Recognize milestones
-
-### 5. 🏆 Competitive Programming
-- **Live Contests** - Real-time competitions
-- **Leaderboards** - Global and local rankings
-- **Problem Archive** - Practice past problems
-- **Rating System** - Track competitive performance
-
-### 6. 👁️ AI Proctoring
-- **Tab Switch Tracking** - Detects when students leave exam
-- **Copy-Paste Detection** - Prevents code copying
-- **Focus Monitoring** - Ensures attention on exam
 
 ---
 
