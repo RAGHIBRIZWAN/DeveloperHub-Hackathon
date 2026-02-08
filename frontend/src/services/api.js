@@ -90,6 +90,8 @@ export const aiAPI = {
   chatWithVoice: (data) => api.post('/ai/chat/voice', data),
   getCodeHelp: (data) => api.post('/ai/help/code', data),
   explainConcept: (data) => api.post('/ai/explain', data),
+  getLearnTopics: (moduleId) => api.get(`/ai/learn/topics/${moduleId}`),
+  getLesson: (data) => api.post('/ai/learn/generate', data),
   transcribe: (formData) => api.post('/ai/transcribe', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),

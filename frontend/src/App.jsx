@@ -25,6 +25,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const Practice = lazy(() => import('./pages/Practice'));
 const Exam = lazy(() => import('./pages/Exam'));
 const Quiz = lazy(() => import('./pages/Quiz'));
+const LearnLesson = lazy(() => import('./pages/LearnLesson'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -99,6 +100,7 @@ function App() {
         <Route path="/practice" element={<UserRoute><Suspense fallback={<PageLoader />}><Practice /></Suspense></UserRoute>} />
         <Route path="/exam" element={<UserRoute><Suspense fallback={<PageLoader />}><Exam /></Suspense></UserRoute>} />
         <Route path="/quiz" element={<UserRoute><Suspense fallback={<PageLoader />}><Quiz /></Suspense></UserRoute>} />
+        <Route path="/learn" element={<UserRoute><Suspense fallback={<PageLoader />}><LearnLesson /></Suspense></UserRoute>} />
 
         {/* Admin-only route */}
         <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><Admin /></Suspense></AdminRoute>} />

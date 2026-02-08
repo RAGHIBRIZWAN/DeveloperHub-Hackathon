@@ -89,6 +89,16 @@ const MODULES = [
 // ─── Learning modes ────────────────────────────────────────────────────
 const MODES = [
   {
+    id: 'learn',
+    name: 'Learn',
+    description: 'Read detailed topic lessons',
+    icon: BookOpen,
+    color: 'from-indigo-500 to-indigo-600',
+    accentHex: '#6366f1',
+    glowColor: 'shadow-indigo-500/30',
+    route: 'learn'
+  },
+  {
     id: 'practice',
     name: 'Practice',
     description: 'Learn concepts with guided lessons',
@@ -245,7 +255,10 @@ const Courses = () => {
 
   const handleModeSelect = (mode) => {
     setSelectedMode(mode);
-    if (mode.id === 'contest') {
+    if (mode.id === 'learn') {
+      navigate(`/learn?module=${selectedModule.id}`);
+      return;
+    } else if (mode.id === 'contest') {
       navigate('/compete');
     } else if (mode.id === 'practice') {
       // For competitive programming, redirect to Practice page with CP problems
