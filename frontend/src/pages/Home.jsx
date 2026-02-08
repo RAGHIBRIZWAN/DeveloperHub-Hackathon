@@ -162,9 +162,9 @@ const Home = () => {
   ];
 
   const stats = [
-    { value: '1000+', label: 'Coding Challenges' },
+    { value: '50+', label: 'Coding Challenges' },
     { value: '50+', label: 'Interactive Lessons' },
-    { value: '10k+', label: 'Active Learners' },
+    { value: '10+', label: 'Active Learners' },
     { value: '24/7', label: 'AI Tutor Support' },
   ];
 

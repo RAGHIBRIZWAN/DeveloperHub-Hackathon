@@ -64,7 +64,9 @@ const ProctoringMonitor = ({
   useEffect(() => {
     if (!sessionId) return;
 
-    const ws = new WebSocket(`ws://localhost:8000/api/proctor/ws/${sessionId}`);
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const wsUrl = API_BASE_URL.replace('http', 'ws').replace('https', 'wss');
+    const ws = new WebSocket(`${wsUrl}/api/proctor/ws/${sessionId}`);
     wsRef.current = ws;
 
     ws.onmessage = (event) => {
