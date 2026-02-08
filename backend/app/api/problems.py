@@ -8,6 +8,7 @@ Supports Python, C++, and JavaScript code execution via local subprocess.
 import asyncio
 import random
 import json
+import aiohttp
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Body
@@ -126,19 +127,19 @@ from app.services.code_executor import execute_code as _execute_code
 
 class MultiLangExecutor:
     """Execute code via local subprocess."""
-    
+
     TIME_LIMIT = 5  # seconds
-    
+
     @staticmethod
     async def execute(code: str, language: str, stdin: str) -> dict:
         """Execute code locally and return result."""
         try:
             result = await _execute_code(code, language, stdin, timeout=MultiLangExecutor.TIME_LIMIT)
-            
+
             status_id = result.get("status_id", 0)
             exec_time = float(result.get("time", 0) or 0)
             execution_time_ms = int(exec_time * 1000)
-            
+
             if status_id == 3:  # Accepted
                 return {
                     "output": (result.get("stdout") or "").strip(),

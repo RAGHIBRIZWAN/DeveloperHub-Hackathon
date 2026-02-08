@@ -12,7 +12,6 @@ from pydantic import BaseModel
 from bson import ObjectId
 from bson.errors import InvalidId
 
-from app.core.config import settings
 from app.core.security import get_current_user, get_current_admin
 from app.models.contest import Contest, ContestParticipation, ContestProblem
 from app.models.challenge import Submission
@@ -760,15 +759,15 @@ async def submit_contest_solution(
     
     # Execute code against test cases via local subprocess
     from app.services.code_executor import execute_code
-    
+
     passed = 0
     total = len(test_cases)
     errors = []
-    
+
     for tc in test_cases:
         tc_input = tc.get("input", "") if isinstance(tc, dict) else ""
         tc_output = tc.get("output", "") if isinstance(tc, dict) else ""
-        
+
         try:
             result = await execute_code(
                 code=code,
@@ -776,10 +775,10 @@ async def submit_contest_solution(
                 stdin=tc_input,
                 timeout=10.0,
             )
-            
+
             status_id = result.get("status_id", 0)
             stdout = (result.get("stdout") or "").strip()
-            
+
             if status_id == 3 and stdout == tc_output.strip():
                 passed += 1
             elif status_id == 6:
