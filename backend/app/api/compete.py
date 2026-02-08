@@ -5,8 +5,6 @@ Contests, leaderboards, and ratings.
 """
 
 import asyncio
-import aiohttp
-import base64
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Body
@@ -760,97 +758,38 @@ async def submit_contest_solution(
     if not test_cases:
         raise HTTPException(status_code=400, detail="No test cases for this problem")
     
-    # Execute code against test cases via Judge0 API
+    # Execute code against test cases via local subprocess
+    from app.services.code_executor import execute_code
+    
     passed = 0
     total = len(test_cases)
     errors = []
-    
-    # Judge0 language ID mapping
-    JUDGE0_LANG_IDS = {"python": 71, "cpp": 54, "javascript": 63}
-    lang_id = JUDGE0_LANG_IDS.get(language)
     
     for tc in test_cases:
         tc_input = tc.get("input", "") if isinstance(tc, dict) else ""
         tc_output = tc.get("output", "") if isinstance(tc, dict) else ""
         
         try:
-            # Submit to Judge0
-            url = f"{settings.JUDGE0_API_URL}/submissions"
-            encoded_code = base64.b64encode(code.encode()).decode()
-            encoded_stdin = base64.b64encode(tc_input.encode()).decode() if tc_input else ""
+            result = await execute_code(
+                code=code,
+                language=language,
+                stdin=tc_input,
+                timeout=10.0,
+            )
             
-            payload = {
-                "source_code": encoded_code,
-                "language_id": lang_id,
-                "stdin": encoded_stdin,
-                "cpu_time_limit": 10,
-                "memory_limit": 128000,
-            }
-            headers = {
-                "Content-Type": "application/json",
-                "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
-                "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
-            }
+            status_id = result.get("status_id", 0)
+            stdout = (result.get("stdout") or "").strip()
             
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url, json=payload, headers=headers,
-                    params={"base64_encoded": "true", "wait": "false"}
-                ) as response:
-                    if response.status != 201:
-                        errors.append("Judge0 submission error")
-                        continue
-                    data = await response.json()
-                    token = data["token"]
-                
-                # Poll for result
-                result_url = f"{settings.JUDGE0_API_URL}/submissions/{token}"
-                poll_headers = {
-                    "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
-                    "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
-                }
-                
-                for _ in range(15):
-                    async with session.get(
-                        result_url, headers=poll_headers,
-                        params={"base64_encoded": "true", "fields": "*"}
-                    ) as resp:
-                        if resp.status != 200:
-                            break
-                        result = await resp.json()
-                        status_id = result.get("status", {}).get("id", 0)
-                        if status_id not in [1, 2]:
-                            break
-                    await asyncio.sleep(1)
-                
-                # Decode output
-                stdout = ""
-                if result.get("stdout"):
-                    try:
-                        stdout = base64.b64decode(result["stdout"]).decode().strip()
-                    except Exception:
-                        pass
-                
-                if status_id == 3 and stdout == tc_output.strip():
-                    passed += 1
-                elif status_id == 6:
-                    compile_out = ""
-                    if result.get("compile_output"):
-                        try:
-                            compile_out = base64.b64decode(result["compile_output"]).decode()
-                        except Exception:
-                            pass
-                    errors.append(f"Compilation error: {compile_out[:200]}")
-                elif status_id == 5:
-                    errors.append("Time limit exceeded")
-                elif status_id in (7, 8, 9, 10, 11, 12):
-                    stderr = ""
-                    if result.get("stderr"):
-                        try:
-                            stderr = base64.b64decode(result["stderr"]).decode()
-                        except Exception:
-                            pass
-                    errors.append(stderr[:200] if stderr else "Runtime error")
+            if status_id == 3 and stdout == tc_output.strip():
+                passed += 1
+            elif status_id == 6:
+                compile_out = result.get("compile_output", "")
+                errors.append(f"Compilation error: {compile_out[:200]}")
+            elif status_id == 5:
+                errors.append("Time limit exceeded")
+            elif status_id in (7, 8, 9, 10, 11, 12):
+                stderr = result.get("stderr", "")
+                errors.append(stderr[:200] if stderr else "Runtime error")
         except asyncio.TimeoutError:
             errors.append("Time limit exceeded")
         except Exception as e:

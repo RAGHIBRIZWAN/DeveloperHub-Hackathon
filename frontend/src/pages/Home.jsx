@@ -169,7 +169,7 @@ const Home = () => {
   ];
 
   const showcaseItems = [
-    { icon: Zap, title: 'Real-Time Code Execution', description: 'Write, run, and debug code in our built-in editor with instant feedback from Judge0.', parallax: [30, -30] },
+    { icon: Zap, title: 'Real-Time Code Execution', description: 'Write, run, and debug code in our built-in Monaco editor with instant feedback.', parallax: [30, -30] },
     { icon: Brain, title: 'AI-Powered Learning', description: 'Get personalized help and explanations from our intelligent AI tutor.', parallax: [60, -60] },
     { icon: Users, title: 'Community Contests', description: 'Compete in live programming contests and rise through the ranks.', parallax: [20, -20] },
   ];

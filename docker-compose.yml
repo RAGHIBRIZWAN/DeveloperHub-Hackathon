@@ -18,8 +18,6 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-key}
       - GROQ_API_KEY=${GROQ_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - JUDGE0_URL=${JUDGE0_URL}
-      - JUDGE0_API_KEY=${JUDGE0_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     networks:
       - codehub-network

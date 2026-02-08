@@ -1,9 +1,9 @@
 """
 Services Package
 ================
-Backend services for external integrations.
+Backend services for code execution and integrations.
 """
 
-from .judge0 import judge0_service, Judge0Service
+from .code_executor import execute_code
 
-__all__ = ["judge0_service", "Judge0Service"]
+__all__ = ["execute_code"]

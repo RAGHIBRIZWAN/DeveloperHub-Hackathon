@@ -2,14 +2,12 @@
 Problems API Routes
 ==================
 API endpoints for hardcoded CP problems and module coding problems.
-Supports Python, C++, and JavaScript code execution via Judge0 API.
+Supports Python, C++, and JavaScript code execution via local subprocess.
 """
 
 import asyncio
-import base64
 import random
 import json
-import aiohttp
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Body
@@ -121,130 +119,48 @@ class ModuleExam(BaseModel):
     questions: List[ExamQuestion]
 
 
-# ============ Code Executor (Judge0 API) ============
+# ============ Code Executor (Local Subprocess) ============
 
-# Language ID mapping for Judge0
-JUDGE0_LANGUAGE_IDS = {
-    "python": 71,      # Python 3.8.1
-    "cpp": 54,         # C++ (GCC 9.2.0)
-    "javascript": 63,  # JavaScript (Node.js 12.14.0)
-}
+from app.services.code_executor import execute_code as _execute_code
 
 
 class MultiLangExecutor:
-    """Execute code via Judge0 API (works in production on Render)."""
+    """Execute code via local subprocess."""
     
     TIME_LIMIT = 5  # seconds
     
     @staticmethod
-    async def _judge0_submit(code: str, language_id: int, stdin: str) -> str:
-        """Submit code to Judge0 and return the token."""
-        url = f"{settings.JUDGE0_API_URL}/submissions"
-        
-        encoded_code = base64.b64encode(code.encode()).decode()
-        encoded_stdin = base64.b64encode(stdin.encode()).decode() if stdin else ""
-        
-        payload = {
-            "source_code": encoded_code,
-            "language_id": language_id,
-            "stdin": encoded_stdin,
-            "cpu_time_limit": MultiLangExecutor.TIME_LIMIT,
-            "memory_limit": 128000,
-        }
-        
-        headers = {
-            "Content-Type": "application/json",
-            "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
-            "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url, json=payload, headers=headers,
-                params={"base64_encoded": "true", "wait": "false"}
-            ) as response:
-                if response.status != 201:
-                    error_text = await response.text()
-                    raise Exception(f"Judge0 submission failed: {error_text}")
-                data = await response.json()
-                return data["token"]
-    
-    @staticmethod
-    async def _judge0_poll(token: str, max_attempts: int = 15) -> dict:
-        """Poll Judge0 for the result."""
-        url = f"{settings.JUDGE0_API_URL}/submissions/{token}"
-        
-        headers = {
-            "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
-            "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            for _ in range(max_attempts):
-                async with session.get(
-                    url, headers=headers,
-                    params={"base64_encoded": "true", "fields": "*"}
-                ) as response:
-                    if response.status != 200:
-                        raise Exception("Failed to get Judge0 result")
-                    data = await response.json()
-                    status_id = data.get("status", {}).get("id", 0)
-                    if status_id not in [1, 2]:  # 1=In Queue, 2=Processing
-                        # Decode base64 outputs
-                        for key in ("stdout", "stderr", "compile_output"):
-                            if data.get(key):
-                                try:
-                                    data[key] = base64.b64decode(data[key]).decode()
-                                except Exception:
-                                    pass
-                        return data
-                await asyncio.sleep(1)
-        raise Exception("Judge0 submission timed out")
-    
-    @staticmethod
     async def execute(code: str, language: str, stdin: str) -> dict:
-        """Execute code via Judge0 and return result."""
-        
-        lang_id = JUDGE0_LANGUAGE_IDS.get(language)
-        if not lang_id:
-            return {
-                "output": "",
-                "error": f"Unsupported language: {language}",
-                "execution_time_ms": 0,
-                "status": "error"
-            }
-        
+        """Execute code locally and return result."""
         try:
-            token = await MultiLangExecutor._judge0_submit(code, lang_id, stdin)
-            result = await MultiLangExecutor._judge0_poll(token)
+            result = await _execute_code(code, language, stdin, timeout=MultiLangExecutor.TIME_LIMIT)
             
-            status_id = result.get("status", {}).get("id", 0)
-            time_sec = float(result.get("time", 0) or 0)
-            execution_time_ms = int(time_sec * 1000)
+            status_id = result.get("status_id", 0)
+            exec_time = float(result.get("time", 0) or 0)
+            execution_time_ms = int(exec_time * 1000)
             
-            # Status 3 = Accepted (ran successfully)
-            if status_id == 3:
+            if status_id == 3:  # Accepted
                 return {
                     "output": (result.get("stdout") or "").strip(),
                     "error": None,
                     "execution_time_ms": execution_time_ms,
                     "status": "success"
                 }
-            elif status_id == 5:
+            elif status_id == 5:  # TLE
                 return {
                     "output": "",
                     "error": "Time Limit Exceeded",
                     "execution_time_ms": MultiLangExecutor.TIME_LIMIT * 1000,
                     "status": "timeout"
                 }
-            elif status_id == 6:
+            elif status_id == 6:  # Compilation Error
                 return {
                     "output": "",
                     "error": f"Compilation Error:\n{result.get('compile_output', '')}",
                     "execution_time_ms": 0,
                     "status": "compile_error"
                 }
-            elif status_id in (7, 8, 9, 10, 11, 12):
+            elif status_id in (7, 8, 9, 10, 11, 12):  # Runtime errors
                 return {
                     "output": "",
                     "error": (result.get("stderr") or "Runtime Error")[:1000],
@@ -252,7 +168,6 @@ class MultiLangExecutor:
                     "status": "error"
                 }
             else:
-                # Wrong answer or other – still return stdout
                 return {
                     "output": (result.get("stdout") or "").strip(),
                     "error": result.get("stderr") or None,
@@ -262,7 +177,7 @@ class MultiLangExecutor:
         except Exception as e:
             return {
                 "output": "",
-                "error": f"Code execution service error: {str(e)}",
+                "error": f"Code execution error: {str(e)}",
                 "execution_time_ms": 0,
                 "status": "error"
             }

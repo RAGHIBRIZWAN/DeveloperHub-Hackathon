@@ -42,13 +42,6 @@ class Settings(BaseSettings):
     # Admin Configuration
     ADMIN_EMAIL: str = "alihadi@admin.com"  # Auto-assign admin role to this email
     
-    # Judge0 Self-Hosted (Code Execution)
-    JUDGE0_URL: str = "http://localhost:2358"  # Self-hosted Judge0 URL
-    JUDGE0_API_URL: str = "https://judge0-ce.p.rapidapi.com"  # Fallback to RapidAPI
-    JUDGE0_API_KEY: str = "your-judge0-api-key"
-    JUDGE0_API_HOST: str = "judge0-ce.p.rapidapi.com"
-    USE_SELF_HOSTED_JUDGE0: bool = True  # Set to False to use RapidAPI
-    
     # AI Services
     GROQ_API_KEY: str = "your-groq-api-key"
     GEMINI_API_KEY: str = "your-gemini-api-key"

@@ -119,9 +119,6 @@ class Submission(Document):
     code: str
     language: str  # python, cpp, javascript
     
-    # Judge0 Integration
-    judge0_token: Optional[str] = None
-    
     # Results
     status: str = "pending"  # pending, running, accepted, wrong_answer, 
                              # time_limit_exceeded, memory_limit_exceeded,

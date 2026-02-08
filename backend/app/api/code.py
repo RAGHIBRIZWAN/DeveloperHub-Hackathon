@@ -1,34 +1,25 @@
 """
 Code Execution API Routes
 ========================
-Judge0 integration for secure code execution.
+Local subprocess-based code execution.
 """
 
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
-import aiohttp
-import base64
-import asyncio
 
-from app.core.config import settings
 from app.core.security import get_current_user
 from app.models.challenge import Challenge, Submission, TestCase
+from app.services.code_executor import execute_code, SUPPORTED_LANGUAGES
 
 router = APIRouter()
 
 
-# ============ Language ID Mapping for Judge0 ============
-LANGUAGE_IDS = {
-    "python": 71,      # Python 3.8.1
-    "python3": 71,
-    "cpp": 54,         # C++ (GCC 9.2.0)
-    "c++": 54,
-    "javascript": 63,  # JavaScript (Node.js 12.14.0)
-    "js": 63,
-    "c": 50,           # C (GCC 9.2.0)
-    "java": 62,        # Java (OpenJDK 13.0.1)
+# ============ Supported Languages ============
+LANGUAGE_ALIASES = {
+    "python", "python3", "cpp", "c++",
+    "javascript", "js", "c", "java",
 }
 
 
@@ -58,130 +49,6 @@ class CodeExecutionResult(BaseModel):
     exit_code: Optional[int] = None
 
 
-# ============ Judge0 Integration ============
-
-async def create_submission(
-    code: str,
-    language_id: int,
-    stdin: str = "",
-    expected_output: str = None,
-    time_limit: float = 2.0,
-    memory_limit: int = 128000
-) -> str:
-    """
-    Create a submission on Judge0 and return the token.
-    """
-    url = f"{settings.JUDGE0_API_URL}/submissions"
-    
-    # Base64 encode the inputs
-    encoded_code = base64.b64encode(code.encode()).decode()
-    encoded_stdin = base64.b64encode(stdin.encode()).decode() if stdin else ""
-    encoded_expected = base64.b64encode(expected_output.encode()).decode() if expected_output else None
-    
-    payload = {
-        "source_code": encoded_code,
-        "language_id": language_id,
-        "stdin": encoded_stdin,
-        "cpu_time_limit": time_limit,
-        "memory_limit": memory_limit,
-    }
-    
-    if encoded_expected:
-        payload["expected_output"] = encoded_expected
-    
-    headers = {
-        "Content-Type": "application/json",
-        "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
-        "X-RapidAPI-Host": settings.JUDGE0_API_HOST
-    }
-    
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            url,
-            json=payload,
-            headers=headers,
-            params={"base64_encoded": "true", "wait": "false"}
-        ) as response:
-            if response.status != 201:
-                error_text = await response.text()
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to create submission: {error_text}"
-                )
-            
-            data = await response.json()
-            return data["token"]
-
-
-async def get_submission_result(token: str, max_attempts: int = 10) -> dict:
-    """
-    Poll Judge0 for submission result.
-    """
-    url = f"{settings.JUDGE0_API_URL}/submissions/{token}"
-    
-    headers = {
-        "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
-        "X-RapidAPI-Host": settings.JUDGE0_API_HOST
-    }
-    
-    async with aiohttp.ClientSession() as session:
-        for attempt in range(max_attempts):
-            async with session.get(
-                url,
-                headers=headers,
-                params={"base64_encoded": "true", "fields": "*"}
-            ) as response:
-                if response.status != 200:
-                    raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail="Failed to get submission result"
-                    )
-                
-                data = await response.json()
-                
-                # Status 1 = In Queue, Status 2 = Processing
-                if data.get("status", {}).get("id") not in [1, 2]:
-                    # Decode base64 outputs
-                    if data.get("stdout"):
-                        data["stdout"] = base64.b64decode(data["stdout"]).decode()
-                    if data.get("stderr"):
-                        data["stderr"] = base64.b64decode(data["stderr"]).decode()
-                    if data.get("compile_output"):
-                        data["compile_output"] = base64.b64decode(data["compile_output"]).decode()
-                    
-                    return data
-                
-                await asyncio.sleep(1)  # Wait before polling again
-        
-        raise HTTPException(
-            status_code=status.HTTP_408_REQUEST_TIMEOUT,
-            detail="Submission timed out"
-        )
-
-
-# ============ Status Mapping ============
-
-def get_status_description(status_id: int) -> str:
-    """Map Judge0 status ID to description."""
-    statuses = {
-        1: "In Queue",
-        2: "Processing",
-        3: "Accepted",
-        4: "Wrong Answer",
-        5: "Time Limit Exceeded",
-        6: "Compilation Error",
-        7: "Runtime Error (SIGSEGV)",
-        8: "Runtime Error (SIGXFSZ)",
-        9: "Runtime Error (SIGFPE)",
-        10: "Runtime Error (SIGABRT)",
-        11: "Runtime Error (NZEC)",
-        12: "Runtime Error (Other)",
-        13: "Internal Error",
-        14: "Exec Format Error"
-    }
-    return statuses.get(status_id, "Unknown")
-
-
 # ============ Routes ============
 
 @router.post("/run", response_model=CodeExecutionResult)
@@ -195,36 +62,28 @@ async def run_code(
     """
     # Validate language
     language = request.language.lower()
-    if language not in LANGUAGE_IDS:
+    if language not in LANGUAGE_ALIASES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported language: {request.language}. Supported: {list(LANGUAGE_IDS.keys())}"
+            detail=f"Unsupported language: {request.language}. Supported: python, cpp, javascript, c, java"
         )
-    
-    language_id = LANGUAGE_IDS[language]
     
     try:
-        # Create submission
-        token = await create_submission(
+        result = await execute_code(
             code=request.code,
-            language_id=language_id,
-            stdin=request.stdin or ""
+            language=language,
+            stdin=request.stdin or "",
+            timeout=10.0,
         )
         
-        # Get result
-        result = await get_submission_result(token)
-        
-        status_id = result.get("status", {}).get("id", 0)
-        status_desc = get_status_description(status_id)
-        
         return CodeExecutionResult(
-            status=status_desc,
+            status=result["status"],
             stdout=result.get("stdout"),
             stderr=result.get("stderr"),
             compile_output=result.get("compile_output"),
             time=result.get("time"),
             memory=result.get("memory"),
-            exit_code=result.get("exit_code")
+            exit_code=result.get("exit_code"),
         )
         
     except HTTPException:
@@ -257,7 +116,7 @@ async def submit_challenge(
     
     # Validate language
     language = request.language.lower()
-    if language not in LANGUAGE_IDS:
+    if language not in LANGUAGE_ALIASES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported language"
@@ -268,8 +127,6 @@ async def submit_challenge(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Language not supported for this challenge"
         )
-    
-    language_id = LANGUAGE_IDS[language]
     
     # Create submission record
     submission = Submission(
@@ -286,46 +143,46 @@ async def submit_challenge(
         test_results = []
         passed_tests = 0
         total_points = 0
-        max_time = 0
+        max_time = 0.0
         max_memory = 0
         
         # Run against each test case
         for i, test_case in enumerate(challenge.test_cases):
-            token = await create_submission(
+            result = await execute_code(
                 code=request.code,
-                language_id=language_id,
+                language=language,
                 stdin=test_case.input,
-                expected_output=test_case.expected_output,
-                time_limit=challenge.time_limit_seconds,
-                memory_limit=challenge.memory_limit_mb * 1024
+                timeout=challenge.time_limit_seconds,
             )
             
-            result = await get_submission_result(token)
-            
-            status_id = result.get("status", {}).get("id", 0)
-            passed = status_id == 3  # 3 = Accepted
+            status_id = result.get("status_id", 0)
+            actual_output = (result.get("stdout") or "").strip()
+            expected_output = (test_case.expected_output or "").strip()
+            passed = status_id == 3 and actual_output == expected_output
             
             if passed:
                 passed_tests += 1
                 total_points += test_case.points
             
             # Track max resources
-            if result.get("time"):
-                max_time = max(max_time, float(result.get("time", 0)))
-            if result.get("memory"):
-                max_memory = max(max_memory, result.get("memory", 0))
+            exec_time = float(result.get("time", 0) or 0)
+            if exec_time:
+                max_time = max(max_time, exec_time)
+            mem = result.get("memory", 0) or 0
+            if mem:
+                max_memory = max(max_memory, mem)
             
             test_result = {
                 "test_case_index": i,
                 "passed": passed,
-                "status": get_status_description(status_id),
-                "time_ms": float(result.get("time", 0)) * 1000 if result.get("time") else None,
-                "memory_kb": result.get("memory")
+                "status": result["status"],
+                "time_ms": exec_time * 1000 if exec_time else None,
+                "memory_kb": mem
             }
             
             # Only include actual output for visible test cases
             if not test_case.is_hidden:
-                test_result["actual_output"] = result.get("stdout", "")
+                test_result["actual_output"] = actual_output
                 test_result["expected_output"] = test_case.expected_output
                 test_result["input"] = test_case.input
             

@@ -60,7 +60,7 @@
 #     ## Features
 #     - 🔐 Authentication & User Management
 #     - 📚 Lesson Management & Progress Tracking
-#     - 💻 Code Execution with Judge0
+#     - 💻 Code Execution (Local Subprocess)
 #     - 🤖 AI Tutor (Bilingual - Urdu/English)
 #     - 📝 RAG-based MCQ Generation
 #     - 🏆 Competitive Programming & Leaderboards
@@ -203,7 +203,7 @@ app = FastAPI(
     ## Features
     - 🔐 Authentication & User Management
     - 📚 Lesson Management & Progress Tracking
-    - 💻 Code Execution with Judge0
+    - 💻 Code Execution (Local Subprocess)
     - 🤖 AI Tutor (Bilingual - Urdu/English)
     - 📝 RAG-based MCQ Generation
     - 🏆 Competitive Programming & Leaderboards
