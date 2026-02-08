@@ -261,10 +261,11 @@ async def health_check():
     return {
         "status": "healthy",
         "database": "connected",
+        "code_version": "piston-v2",
         "services": {
             "auth": "operational",
             "lessons": "operational",
-            "code_execution": "operational",
+            "code_execution": "piston-api",
             "ai_tutor": "operational",
             "mcq_generator": "operational",
             "gamification": "operational",
