@@ -2,14 +2,11 @@
 Problems API Routes
 ==================
 API endpoints for hardcoded CP problems and module coding problems.
-Supports Python, C++, and JavaScript code execution with test case evaluation.
+Supports Python, C++, and JavaScript code execution via Judge0 API.
 """
 
 import asyncio
-import subprocess
-import tempfile
-import os
-import time
+import base64
 import random
 import json
 import aiohttp
@@ -124,205 +121,151 @@ class ModuleExam(BaseModel):
     questions: List[ExamQuestion]
 
 
-# ============ Code Executor ============
+# ============ Code Executor (Judge0 API) ============
+
+# Language ID mapping for Judge0
+JUDGE0_LANGUAGE_IDS = {
+    "python": 71,      # Python 3.8.1
+    "cpp": 54,         # C++ (GCC 9.2.0)
+    "javascript": 63,  # JavaScript (Node.js 12.14.0)
+}
+
 
 class MultiLangExecutor:
-    """Execute code in Python, C++, or JavaScript."""
+    """Execute code via Judge0 API (works in production on Render)."""
     
     TIME_LIMIT = 5  # seconds
     
     @staticmethod
-    async def execute(code: str, language: str, stdin: str) -> dict:
-        """Execute code and return result."""
+    async def _judge0_submit(code: str, language_id: int, stdin: str) -> str:
+        """Submit code to Judge0 and return the token."""
+        url = f"{settings.JUDGE0_API_URL}/submissions"
         
-        if language == "python":
-            return await MultiLangExecutor._execute_python(code, stdin)
-        elif language == "cpp":
-            return await MultiLangExecutor._execute_cpp(code, stdin)
-        elif language == "javascript":
-            return await MultiLangExecutor._execute_javascript(code, stdin)
-        else:
+        encoded_code = base64.b64encode(code.encode()).decode()
+        encoded_stdin = base64.b64encode(stdin.encode()).decode() if stdin else ""
+        
+        payload = {
+            "source_code": encoded_code,
+            "language_id": language_id,
+            "stdin": encoded_stdin,
+            "cpu_time_limit": MultiLangExecutor.TIME_LIMIT,
+            "memory_limit": 128000,
+        }
+        
+        headers = {
+            "Content-Type": "application/json",
+            "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
+            "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url, json=payload, headers=headers,
+                params={"base64_encoded": "true", "wait": "false"}
+            ) as response:
+                if response.status != 201:
+                    error_text = await response.text()
+                    raise Exception(f"Judge0 submission failed: {error_text}")
+                data = await response.json()
+                return data["token"]
+    
+    @staticmethod
+    async def _judge0_poll(token: str, max_attempts: int = 15) -> dict:
+        """Poll Judge0 for the result."""
+        url = f"{settings.JUDGE0_API_URL}/submissions/{token}"
+        
+        headers = {
+            "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
+            "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            for _ in range(max_attempts):
+                async with session.get(
+                    url, headers=headers,
+                    params={"base64_encoded": "true", "fields": "*"}
+                ) as response:
+                    if response.status != 200:
+                        raise Exception("Failed to get Judge0 result")
+                    data = await response.json()
+                    status_id = data.get("status", {}).get("id", 0)
+                    if status_id not in [1, 2]:  # 1=In Queue, 2=Processing
+                        # Decode base64 outputs
+                        for key in ("stdout", "stderr", "compile_output"):
+                            if data.get(key):
+                                try:
+                                    data[key] = base64.b64decode(data[key]).decode()
+                                except Exception:
+                                    pass
+                        return data
+                await asyncio.sleep(1)
+        raise Exception("Judge0 submission timed out")
+    
+    @staticmethod
+    async def execute(code: str, language: str, stdin: str) -> dict:
+        """Execute code via Judge0 and return result."""
+        
+        lang_id = JUDGE0_LANGUAGE_IDS.get(language)
+        if not lang_id:
             return {
                 "output": "",
                 "error": f"Unsupported language: {language}",
                 "execution_time_ms": 0,
                 "status": "error"
             }
-    
-    @staticmethod
-    async def _execute_python(code: str, stdin: str) -> dict:
-        """Execute Python code."""
-        
-        # Security check
-        forbidden = ["import os", "import sys", "import subprocess", "__import__", "eval(", "exec(", "open("]
-        code_lower = code.lower()
-        for f in forbidden:
-            if f in code_lower:
-                return {"output": "", "error": f"Forbidden: {f}", "execution_time_ms": 0, "status": "error"}
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-            f.write(code)
-            code_file = f.name
         
         try:
-            start = time.time()
-            process = subprocess.run(
-                ["python", code_file],
-                input=stdin,
-                capture_output=True,
-                text=True,
-                timeout=MultiLangExecutor.TIME_LIMIT
-            )
-            execution_time = int((time.time() - start) * 1000)
+            token = await MultiLangExecutor._judge0_submit(code, lang_id, stdin)
+            result = await MultiLangExecutor._judge0_poll(token)
             
-            if process.returncode != 0:
+            status_id = result.get("status", {}).get("id", 0)
+            time_sec = float(result.get("time", 0) or 0)
+            execution_time_ms = int(time_sec * 1000)
+            
+            # Status 3 = Accepted (ran successfully)
+            if status_id == 3:
                 return {
-                    "output": "",
-                    "error": process.stderr[:1000],
-                    "execution_time_ms": execution_time,
-                    "status": "error"
+                    "output": (result.get("stdout") or "").strip(),
+                    "error": None,
+                    "execution_time_ms": execution_time_ms,
+                    "status": "success"
                 }
-            
-            return {
-                "output": process.stdout.strip(),
-                "error": None,
-                "execution_time_ms": execution_time,
-                "status": "success"
-            }
-        except subprocess.TimeoutExpired:
-            return {"output": "", "error": "Time Limit Exceeded", "execution_time_ms": MultiLangExecutor.TIME_LIMIT * 1000, "status": "timeout"}
-        finally:
-            try:
-                os.unlink(code_file)
-            except:
-                pass
-    
-    @staticmethod
-    async def _execute_cpp(code: str, stdin: str) -> dict:
-        """Execute C++ code."""
-        
-        # Add header to fix MinGW ssize_t issue - define ssize_t before any includes
-        mingw_fix = """#ifndef _SSIZE_T_DEFINED
-#define _SSIZE_T_DEFINED
-#include <stddef.h>
-typedef ptrdiff_t ssize_t;
-#endif
-"""
-        fixed_code = mingw_fix + code
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.cpp', delete=False) as f:
-            f.write(fixed_code)
-            code_file = f.name
-        
-        exe_file = code_file.replace('.cpp', '.exe' if os.name == 'nt' else '')
-        
-        try:
-            # Compile with C++14 standard and proper flags
-            compile_result = subprocess.run(
-                ["g++", code_file, "-o", exe_file, "-std=c++14", "-O2", "-static-libgcc", "-static-libstdc++"],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            if compile_result.returncode != 0:
+            elif status_id == 5:
                 return {
                     "output": "",
-                    "error": f"Compilation Error:\n{compile_result.stderr[:1000]}",
+                    "error": "Time Limit Exceeded",
+                    "execution_time_ms": MultiLangExecutor.TIME_LIMIT * 1000,
+                    "status": "timeout"
+                }
+            elif status_id == 6:
+                return {
+                    "output": "",
+                    "error": f"Compilation Error:\n{result.get('compile_output', '')}",
                     "execution_time_ms": 0,
                     "status": "compile_error"
                 }
-            
-            # Execute
-            start = time.time()
-            process = subprocess.run(
-                [exe_file],
-                input=stdin,
-                capture_output=True,
-                text=True,
-                timeout=MultiLangExecutor.TIME_LIMIT
-            )
-            execution_time = int((time.time() - start) * 1000)
-            
-            if process.returncode != 0:
+            elif status_id in (7, 8, 9, 10, 11, 12):
                 return {
                     "output": "",
-                    "error": process.stderr[:1000] or "Runtime Error",
-                    "execution_time_ms": execution_time,
+                    "error": (result.get("stderr") or "Runtime Error")[:1000],
+                    "execution_time_ms": execution_time_ms,
                     "status": "error"
                 }
-            
-            return {
-                "output": process.stdout.strip(),
-                "error": None,
-                "execution_time_ms": execution_time,
-                "status": "success"
-            }
-        except subprocess.TimeoutExpired:
-            return {"output": "", "error": "Time Limit Exceeded", "execution_time_ms": MultiLangExecutor.TIME_LIMIT * 1000, "status": "timeout"}
-        except FileNotFoundError:
-            return {"output": "", "error": "C++ compiler (g++) not found. Please install it.", "execution_time_ms": 0, "status": "error"}
-        finally:
-            try:
-                os.unlink(code_file)
-                if os.path.exists(exe_file):
-                    os.unlink(exe_file)
-            except:
-                pass
-    
-    @staticmethod
-    async def _execute_javascript(code: str, stdin: str) -> dict:
-        """Execute JavaScript code with Node.js."""
-        
-        # Wrap code to read from stdin
-        escaped_stdin = stdin.replace('`', '\\`')
-        newline = '\\n'
-        wrapped_code = f"""
-const readline = require('readline');
-const input = `{escaped_stdin}`.trim().split('{newline}');
-let inputIndex = 0;
-const readLine = () => input[inputIndex++] || '';
-
-{code}
-"""
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
-            f.write(wrapped_code)
-            code_file = f.name
-        
-        try:
-            start = time.time()
-            process = subprocess.run(
-                ["node", code_file],
-                capture_output=True,
-                text=True,
-                timeout=MultiLangExecutor.TIME_LIMIT
-            )
-            execution_time = int((time.time() - start) * 1000)
-            
-            if process.returncode != 0:
+            else:
+                # Wrong answer or other – still return stdout
                 return {
-                    "output": "",
-                    "error": process.stderr[:1000],
-                    "execution_time_ms": execution_time,
-                    "status": "error"
+                    "output": (result.get("stdout") or "").strip(),
+                    "error": result.get("stderr") or None,
+                    "execution_time_ms": execution_time_ms,
+                    "status": "success" if result.get("stdout") else "error"
                 }
-            
+        except Exception as e:
             return {
-                "output": process.stdout.strip(),
-                "error": None,
-                "execution_time_ms": execution_time,
-                "status": "success"
+                "output": "",
+                "error": f"Code execution service error: {str(e)}",
+                "execution_time_ms": 0,
+                "status": "error"
             }
-        except subprocess.TimeoutExpired:
-            return {"output": "", "error": "Time Limit Exceeded", "execution_time_ms": MultiLangExecutor.TIME_LIMIT * 1000, "status": "timeout"}
-        except FileNotFoundError:
-            return {"output": "", "error": "Node.js not found. Please install it.", "execution_time_ms": 0, "status": "error"}
-        finally:
-            try:
-                os.unlink(code_file)
-            except:
-                pass
 
 
 # ============ CP Problems Routes ============
@@ -439,8 +382,12 @@ async def get_module_mcqs(
 
 
 @router.post("/modules/mcqs/{mcq_id}/check")
-async def check_mcq_answer(mcq_id: str, request: dict = Body(...)):
-    """Check if the selected answer is correct."""
+async def check_mcq_answer(
+    mcq_id: str,
+    request: dict = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Check if the selected answer is correct. Tracks per-question to prevent exploits."""
     
     selected_option = request.get("selected_option")
     if not selected_option:
@@ -450,7 +397,37 @@ async def check_mcq_answer(mcq_id: str, request: dict = Body(...)):
     if not mcq:
         raise HTTPException(status_code=404, detail="Question not found")
     
+    # --- Dedup: check if user already answered this MCQ ---
+    mcq_key = f"mcq-{mcq_id}"
+    existing = await UserProblemStatus.find_one({
+        "user_id": current_user["user_id"],
+        "problem_id": mcq_key
+    })
+    
+    if existing:
+        # Already answered — return cached result, no reward increment
+        is_correct = existing.is_solved
+        return {
+            "is_correct": is_correct,
+            "correct_option": mcq["correct_option"],
+            "explanation": mcq["explanation"],
+            "ai_explanation": mcq["explanation"],
+            "selected_option": selected_option,
+            "already_answered": True
+        }
+    
+    # First-time answer — record it
     is_correct = selected_option == mcq["correct_option"]
+    
+    mcq_status = UserProblemStatus(
+        user_id=current_user["user_id"],
+        problem_id=mcq_key,
+        is_solved=is_correct,
+        attempts=1,
+        solved_at=datetime.utcnow() if is_correct else None,
+        last_attempt_at=datetime.utcnow()
+    )
+    await mcq_status.insert()
     
     # Generate detailed explanation using Groq LLM
     groq_explanation = None
@@ -482,7 +459,8 @@ Keep it concise (2-3 sentences) and encouraging."""
         "correct_option": mcq["correct_option"],
         "explanation": mcq["explanation"],
         "ai_explanation": groq_explanation,
-        "selected_option": selected_option
+        "selected_option": selected_option,
+        "already_answered": False
     }
 
 
@@ -1454,10 +1432,27 @@ async def complete_quiz(
     request: dict = Body(...),
     current_user: dict = Depends(get_current_user)
 ):
-    """Submit quiz results and award XP/coins based on score."""
+    """Submit quiz results and award XP/coins based on server-verified score."""
     module_id = request.get("module_id", "unknown")
-    correct = request.get("correct", 0)
-    total = request.get("total", 0)
+    
+    # --- Server-side score verification ---
+    # Get all MCQs for this module to know the question IDs
+    module_mcqs = get_mcqs_by_module(module_id) or []
+    mcq_ids = [m["id"] for m in module_mcqs]
+    
+    if not mcq_ids:
+        raise HTTPException(status_code=400, detail="Invalid module or no MCQs found")
+    
+    # Query the user's per-question records from the DB
+    mcq_keys = [f"mcq-{mid}" for mid in mcq_ids]
+    answered_records = await UserProblemStatus.find({
+        "user_id": current_user["user_id"],
+        "problem_id": {"$in": mcq_keys}
+    }).to_list()
+    
+    # Compute verified counts
+    total = len(mcq_ids)
+    correct = sum(1 for r in answered_records if r.is_solved)
     
     if total <= 0:
         raise HTTPException(status_code=400, detail="Invalid quiz data")
@@ -1486,7 +1481,7 @@ async def complete_quiz(
         if quiz_status and quiz_status.is_solved:
             already_completed = True
         else:
-            # First completion — award XP/coins
+            # First completion — award XP/coins based on server-verified score
             xp_earned = correct * 5
             if score >= 80:
                 xp_earned += 15

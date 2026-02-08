@@ -79,13 +79,18 @@ const Quiz = () => {
       setCorrectAnswer(data.correct_option);
       setAiExplanation(data.ai_explanation || data.explanation);
       
-      if (data.is_correct) {
-        setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
-        toast.success('Correct! 🎉');
+      // Only update score if this is a first-time answer (not already answered)
+      if (!data.already_answered) {
+        if (data.is_correct) {
+          setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
+          toast.success('Correct! 🎉');
+        } else {
+          toast.error('Incorrect!');
+        }
+        setScore(prev => ({ ...prev, total: prev.total + 1 }));
       } else {
-        toast.error('Incorrect!');
+        toast.info('Already answered this question');
       }
-      setScore(prev => ({ ...prev, total: prev.total + 1 }));
       
       if (data.ai_explanation || data.explanation) {
         handleSpeakExplanation(data.ai_explanation || data.explanation);

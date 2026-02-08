@@ -4,6 +4,9 @@ Competitive Programming API Routes
 Contests, leaderboards, and ratings.
 """
 
+import asyncio
+import aiohttp
+import base64
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Body
@@ -11,6 +14,7 @@ from pydantic import BaseModel
 from bson import ObjectId
 from bson.errors import InvalidId
 
+from app.core.config import settings
 from app.core.security import get_current_user, get_current_admin
 from app.models.contest import Contest, ContestParticipation, ContestProblem
 from app.models.challenge import Submission
@@ -708,7 +712,7 @@ async def submit_contest_solution(
     Executes code against the problem's test cases and updates participation.
     """
     from pydantic import BaseModel
-    import subprocess, tempfile, os, time
+    import base64
     
     contest = await get_contest_safe(contest_id)
     
@@ -756,94 +760,98 @@ async def submit_contest_solution(
     if not test_cases:
         raise HTTPException(status_code=400, detail="No test cases for this problem")
     
-    # Execute code against test cases
+    # Execute code against test cases via Judge0 API
     passed = 0
     total = len(test_cases)
     errors = []
+    
+    # Judge0 language ID mapping
+    JUDGE0_LANG_IDS = {"python": 71, "cpp": 54, "javascript": 63}
+    lang_id = JUDGE0_LANG_IDS.get(language)
     
     for tc in test_cases:
         tc_input = tc.get("input", "") if isinstance(tc, dict) else ""
         tc_output = tc.get("output", "") if isinstance(tc, dict) else ""
         
         try:
-            if language == "python":
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
-                    f.write(code)
-                    code_file = f.name
-                try:
-                    proc = subprocess.run(
-                        ["python", code_file],
-                        input=tc_input, capture_output=True, text=True, timeout=10
-                    )
-                    if proc.returncode == 0 and proc.stdout.strip() == tc_output.strip():
-                        passed += 1
-                    elif proc.returncode != 0:
-                        errors.append(proc.stderr[:200] if proc.stderr else "Runtime error")
-                finally:
-                    try: os.unlink(code_file)
-                    except: pass
-                    
-            elif language == "cpp":
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.cpp', delete=False, encoding='utf-8') as f:
-                    f.write(code)
-                    code_file = f.name
-                exe_file = code_file.replace('.cpp', '.exe' if os.name == 'nt' else '.out')
-                try:
-                    compile_res = subprocess.run(
-                        ["g++", code_file, "-o", exe_file, "-std=c++17", "-O2"],
-                        capture_output=True, text=True, timeout=30
-                    )
-                    if compile_res.returncode != 0:
-                        errors.append(f"Compilation error: {compile_res.stderr[:200]}")
-                    else:
-                        proc = subprocess.run(
-                            [exe_file], input=tc_input, capture_output=True, text=True, timeout=10
-                        )
-                        if proc.returncode == 0 and proc.stdout.strip() == tc_output.strip():
-                            passed += 1
-                        elif proc.returncode != 0:
-                            errors.append(proc.stderr[:200] if proc.stderr else "Runtime error")
-                finally:
-                    try: os.unlink(code_file)
-                    except: pass
-                    try: os.unlink(exe_file)
-                    except: pass
-                    
-            elif language == "javascript":
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f:
-                    # Proper stdin handling for Node.js
-                    wrapper = (
-                        "const fs = require('fs');\n"
-                        "const inputData = fs.readFileSync('/dev/stdin', 'utf8').trim();\n"
-                        "const inputLines = inputData.split('\\n');\n"
-                        "let lineIndex = 0;\n"
-                        "function readLine() { return inputLines[lineIndex++] || ''; }\n"
-                        "const readline = { question: (q, cb) => cb(readLine()) };\n"
-                    )
-                    # On Windows, use a different stdin approach
-                    if os.name == 'nt':
-                        wrapper = (
-                            "const inputData = require('fs').readFileSync(0, 'utf8').trim();\n"
-                            "const inputLines = inputData.split('\\n');\n"
-                            "let lineIndex = 0;\n"
-                            "function readLine() { return inputLines[lineIndex++] || ''; }\n"
-                            "const readline = { question: (q, cb) => cb(readLine()) };\n"
-                        )
-                    f.write(wrapper + code)
-                    code_file = f.name
-                try:
-                    proc = subprocess.run(
-                        ["node", code_file],
-                        input=tc_input, capture_output=True, text=True, timeout=10
-                    )
-                    if proc.returncode == 0 and proc.stdout.strip() == tc_output.strip():
-                        passed += 1
-                    elif proc.returncode != 0:
-                        errors.append(proc.stderr[:200] if proc.stderr else "Runtime error")
-                finally:
-                    try: os.unlink(code_file)
-                    except: pass
-        except subprocess.TimeoutExpired:
+            # Submit to Judge0
+            url = f"{settings.JUDGE0_API_URL}/submissions"
+            encoded_code = base64.b64encode(code.encode()).decode()
+            encoded_stdin = base64.b64encode(tc_input.encode()).decode() if tc_input else ""
+            
+            payload = {
+                "source_code": encoded_code,
+                "language_id": lang_id,
+                "stdin": encoded_stdin,
+                "cpu_time_limit": 10,
+                "memory_limit": 128000,
+            }
+            headers = {
+                "Content-Type": "application/json",
+                "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
+                "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url, json=payload, headers=headers,
+                    params={"base64_encoded": "true", "wait": "false"}
+                ) as response:
+                    if response.status != 201:
+                        errors.append("Judge0 submission error")
+                        continue
+                    data = await response.json()
+                    token = data["token"]
+                
+                # Poll for result
+                result_url = f"{settings.JUDGE0_API_URL}/submissions/{token}"
+                poll_headers = {
+                    "X-RapidAPI-Key": settings.JUDGE0_API_KEY,
+                    "X-RapidAPI-Host": settings.JUDGE0_API_HOST,
+                }
+                
+                for _ in range(15):
+                    async with session.get(
+                        result_url, headers=poll_headers,
+                        params={"base64_encoded": "true", "fields": "*"}
+                    ) as resp:
+                        if resp.status != 200:
+                            break
+                        result = await resp.json()
+                        status_id = result.get("status", {}).get("id", 0)
+                        if status_id not in [1, 2]:
+                            break
+                    await asyncio.sleep(1)
+                
+                # Decode output
+                stdout = ""
+                if result.get("stdout"):
+                    try:
+                        stdout = base64.b64decode(result["stdout"]).decode().strip()
+                    except Exception:
+                        pass
+                
+                if status_id == 3 and stdout == tc_output.strip():
+                    passed += 1
+                elif status_id == 6:
+                    compile_out = ""
+                    if result.get("compile_output"):
+                        try:
+                            compile_out = base64.b64decode(result["compile_output"]).decode()
+                        except Exception:
+                            pass
+                    errors.append(f"Compilation error: {compile_out[:200]}")
+                elif status_id == 5:
+                    errors.append("Time limit exceeded")
+                elif status_id in (7, 8, 9, 10, 11, 12):
+                    stderr = ""
+                    if result.get("stderr"):
+                        try:
+                            stderr = base64.b64decode(result["stderr"]).decode()
+                        except Exception:
+                            pass
+                    errors.append(stderr[:200] if stderr else "Runtime error")
+        except asyncio.TimeoutError:
             errors.append("Time limit exceeded")
         except Exception as e:
             errors.append(str(e)[:100])
