@@ -178,7 +178,7 @@ const Profile = () => {
     <div className="relative min-h-screen">
       <PageBackground />
 
-      <div className="relative z-10 p-6 max-w-4xl mx-auto">
+      <div className="relative z-10 p-4 md:p-6 max-w-4xl mx-auto">
         {/* Hidden file input */}
         <input
           type="file"
@@ -261,7 +261,7 @@ const Profile = () => {
           {/* Gradient glow border */}
           <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-indigo-500/40 via-violet-500/30 to-pink-500/40 blur-[1px]" />
           <div className="relative bg-white/[0.04] backdrop-blur-xl rounded-2xl p-8 border border-white/[0.06]">
-            <div className="flex items-start gap-6">
+            <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 sm:gap-6">
               {/* Avatar with glow ring */}
               <div className="relative group">
                 <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-indigo-500/50 via-violet-500/50 to-pink-500/50 blur-md opacity-70 group-hover:opacity-100 transition-opacity" />
@@ -351,13 +351,13 @@ const Profile = () => {
               </div>
 
               {/* XP Progress */}
-              <div className="text-right">
-                <div className="flex items-center gap-2 justify-end">
+              <div className="text-center sm:text-right w-full sm:w-auto mt-2 sm:mt-0">
+                <div className="flex items-center gap-2 justify-center sm:justify-end">
                   <Star className="text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.5)]" size={20} />
                   <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 to-amber-400">{xp} XP</span>
                 </div>
                 <p className="text-slate-500 text-sm mt-1">{xpToNextLevel - xp} to Level {level + 1}</p>
-                <div className="w-48 h-2 bg-white/[0.06] rounded-full mt-2 overflow-hidden border border-white/[0.04]">
+                <div className="w-full sm:w-48 h-2 bg-white/[0.06] rounded-full mt-2 overflow-hidden border border-white/[0.04] mx-auto sm:mx-0">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${(xp / xpToNextLevel) * 100}%` }}
@@ -371,7 +371,7 @@ const Profile = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-4 gap-4 mb-6">
+        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
           {stats.map((stat) => (
             <motion.div
               key={stat.label}
@@ -431,7 +431,7 @@ const Profile = () => {
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 to-amber-400">Badges</span>
           </h2>
           
-          <div className="grid grid-cols-6 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 md:gap-4">
             {badges.map((badge, index) => (
               <motion.div
                 key={badge.id}
@@ -449,7 +449,7 @@ const Profile = () => {
             ))}
             
             {badges.length === 0 && (
-              <div className="col-span-6 text-center py-10 text-slate-500">
+              <div className="col-span-full text-center py-10 text-slate-500">
                 <Award size={48} className="mx-auto mb-3 opacity-30" />
                 <p>No badges earned yet. Keep learning!</p>
               </div>

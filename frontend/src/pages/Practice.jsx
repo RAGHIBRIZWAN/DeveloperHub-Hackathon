@@ -153,6 +153,9 @@ export default function Practice() {
   // AI Suggestions state
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [showAiModal, setShowAiModal] = useState(false);
+  
+  // Mobile panel switcher for problem solver view
+  const [mobilePanel, setMobilePanel] = useState('code');
 
   // Update category when URL params change
   useEffect(() => {
@@ -387,21 +390,21 @@ export default function Practice() {
         {/* Top Header Bar */}
         <div className="relative flex-shrink-0">
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
-          <div className="bg-white/[0.04] backdrop-blur-2xl border-b border-white/[0.06] px-5 py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="bg-white/[0.04] backdrop-blur-2xl border-b border-white/[0.06] px-3 md:px-5 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0">
               <button
                 onClick={() => setSelectedProblem(null)}
-                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+                className="flex items-center gap-1 md:gap-2 text-slate-400 hover:text-white transition-colors group flex-shrink-0"
               >
                 <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
-                <span className="text-sm">Back</span>
+                <span className="text-sm hidden sm:inline">Back</span>
               </button>
-              <div className="w-px h-5 bg-white/[0.08]" />
-              <h2 className="text-white font-semibold text-sm truncate max-w-[300px]">
+              <div className="w-px h-5 bg-white/[0.08] hidden sm:block" />
+              <h2 className="text-white font-semibold text-sm truncate max-w-[120px] sm:max-w-[300px]">
                 {selectedProblem.name}
               </h2>
               {problemData && (
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyLabel(problemData.difficulty).color}`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium hidden sm:inline ${getDifficultyLabel(problemData.difficulty).color}`}>
                   {getDifficultyLabel(problemData.difficulty).text}
                 </span>
               )}
@@ -418,11 +421,31 @@ export default function Practice() {
           </div>
         </div>
 
+        {/* Mobile Panel Switcher */}
+        <div className="flex md:hidden border-b border-white/[0.06] bg-white/[0.03]">
+          <button
+            onClick={() => setMobilePanel('problem')}
+            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
+              mobilePanel === 'problem' ? 'text-white bg-white/[0.06] border-b-2 border-indigo-500' : 'text-slate-500'
+            }`}
+          >
+            Problem
+          </button>
+          <button
+            onClick={() => setMobilePanel('code')}
+            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
+              mobilePanel === 'code' ? 'text-white bg-white/[0.06] border-b-2 border-indigo-500' : 'text-slate-500'
+            }`}
+          >
+            Code
+          </button>
+        </div>
+
         {/* Main Split Pane */}
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0">
           {/* ── Problem Description Panel ────────────────────────── */}
-          <div className={`${isFullscreen ? 'w-2/5' : 'w-1/2'} border-r border-white/[0.06] overflow-auto`}>
-            <div className="p-6">
+          <div className={`${isFullscreen ? 'md:w-2/5' : 'md:w-1/2'} md:border-r border-white/[0.06] overflow-auto ${mobilePanel === 'problem' ? 'flex-1' : 'hidden'} md:block md:flex-none`}>
+            <div className="p-4 md:p-6">
               {problemLoading ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
@@ -551,9 +574,9 @@ export default function Practice() {
           </div>
 
           {/* ── Code Editor Panel ────────────────────────────────── */}
-          <div className={`${isFullscreen ? 'w-3/5' : 'w-1/2'} flex flex-col`}>
+          <div className={`${isFullscreen ? 'md:w-3/5' : 'md:w-1/2'} flex-col ${mobilePanel === 'code' ? 'flex flex-1' : 'hidden'} md:flex md:flex-none`}>
             {/* Editor Toolbar */}
-            <div className="flex items-center justify-between px-4 py-2 bg-white/[0.02] border-b border-white/[0.06]">
+            <div className="flex items-center justify-between px-3 md:px-4 py-2 bg-white/[0.02] border-b border-white/[0.06] flex-wrap gap-2">
               <div className="flex items-center gap-3">
                 {/* Language Selector */}
                 <select
@@ -843,20 +866,20 @@ export default function Practice() {
       <div className="relative flex-shrink-0">
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
         <div className="bg-white/[0.04] backdrop-blur-2xl border-b border-white/[0.06]">
-          <div className="max-w-[1600px] mx-auto px-6 py-5">
+          <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-5">
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center justify-between"
             >
               <div>
-                <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-xl border border-white/[0.06]">
                     <Code size={20} className="text-indigo-400" />
                   </div>
                   Practice Problems
                 </h1>
-                <p className="text-slate-500 text-sm mt-1 ml-[52px]">
+                <p className="text-slate-500 text-sm mt-1 ml-[52px] hidden sm:block">
                   Master programming through hands-on coding challenges
                 </p>
               </div>
@@ -867,7 +890,7 @@ export default function Practice() {
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-[1600px] mx-auto px-6 py-6">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">
 
           {/* Category Tabs */}
           <motion.div
@@ -876,11 +899,11 @@ export default function Practice() {
             transition={{ delay: 0.05 }}
             className="mb-6"
           >
-            <div className="flex flex-wrap gap-3">
+            <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-thin">
               {/* CP Tab */}
               <button
                 onClick={() => handleCategoryChange('cp')}
-                className={`relative flex items-center gap-3 px-5 py-3 rounded-xl transition-all group ${
+                className={`relative flex items-center gap-2 md:gap-3 px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all group flex-shrink-0 ${
                   activeCategory === 'cp'
                     ? 'bg-white/[0.10] text-white shadow-lg shadow-amber-500/10'
                     : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.06] hover:text-slate-200 border border-white/[0.06]'
@@ -904,7 +927,7 @@ export default function Practice() {
                   <button
                     key={key}
                     onClick={() => handleCategoryChange(key)}
-                    className={`relative flex items-center gap-3 px-5 py-3 rounded-xl transition-all group ${
+                    className={`relative flex items-center gap-2 md:gap-3 px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all group flex-shrink-0 ${
                       isActive
                         ? 'bg-white/[0.10] text-white shadow-lg'
                         : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.06] hover:text-slate-200 border border-white/[0.06]'
@@ -914,7 +937,7 @@ export default function Practice() {
                       <div className={`absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-gradient-to-r ${info.color}`} />
                     )}
                     <Icon size={18} />
-                    <div className="text-left">
+                    <div className="text-left hidden sm:block">
                       <div className="font-medium text-sm">{info.name}</div>
                       <div className="text-xs opacity-60">{info.description.substring(0, 30)}...</div>
                     </div>
@@ -1125,17 +1148,17 @@ export default function Practice() {
                   onClick={() => setSelectedProblem(problem)}
                   className="group relative bg-white/[0.02] backdrop-blur-sm rounded-xl p-4 border border-white/[0.06] hover:bg-white/[0.05] hover:border-indigo-500/20 hover:shadow-[0_0_30px_rgba(99,102,241,0.06)] transition-all duration-300 cursor-pointer"
                 >
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-2 md:gap-4">
                     {/* Solved indicator */}
                     {solvedProblemIds.has(problem.id) && (
-                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.15)]" title="Solved">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.15)]" title="Solved">
+                        <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-400" />
                       </div>
                     )}
                     {/* Problem Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1.5">
-                        <h3 className="text-white font-medium truncate group-hover:text-indigo-300 transition-colors text-[15px]">
+                      <div className="flex items-center gap-2 md:gap-3 mb-1.5">
+                        <h3 className="text-white font-medium truncate group-hover:text-indigo-300 transition-colors text-sm md:text-[15px]">
                           {problem.name}
                         </h3>
                         {problem.topic && (
@@ -1159,15 +1182,15 @@ export default function Practice() {
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
+                    <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
                       {/* Difficulty */}
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyLabel(problem.difficulty).color}`}>
+                      <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-medium ${getDifficultyLabel(problem.difficulty).color}`}>
                         {getDifficultyLabel(problem.difficulty).text}
                       </span>
                       
-                      {/* Rating (only for CP) */}
+                      {/* Rating (only for CP, hidden on small mobile) */}
                       {problem.rating && (
-                        <div className="flex items-center gap-2">
+                        <div className="hidden sm:flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${getDifficultyColor(problem.rating)} shadow-[0_0_6px_currentColor]`} />
                           <span className="text-white text-sm font-medium tabular-nums">
                             {problem.rating}

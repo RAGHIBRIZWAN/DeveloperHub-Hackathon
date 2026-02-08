@@ -190,7 +190,7 @@ const Compete = () => {
       <PageBackground variant="compete" />
 
       {/* floating content overlay */}
-      <div className="relative z-10 p-6 max-w-7xl mx-auto">
+      <div className="relative z-10 p-4 md:p-6 max-w-7xl mx-auto">
 
         {/* ── Hero Header ── */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
@@ -218,7 +218,7 @@ const Compete = () => {
             <div>
               <p className="text-slate-400 text-sm mb-1.5 tracking-wide">Your Rating</p>
               <div className="flex items-center gap-3">
-                <span className={`text-5xl font-extrabold bg-gradient-to-b ${tier.gradient} bg-clip-text text-transparent`}>
+                <span className={`text-3xl md:text-5xl font-extrabold bg-gradient-to-b ${tier.gradient} bg-clip-text text-transparent`}>
                   {ratingValue}
                 </span>
                 <span
@@ -237,14 +237,14 @@ const Compete = () => {
         </motion.div>
 
         {/* ── Tab Switcher ── */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
           {tabs.map((tab) => {
             const active = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300
+                className={`relative flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-medium transition-all duration-300 flex-shrink-0
                   ${active
                     ? 'text-white shadow-lg'
                     : 'text-slate-400 hover:text-slate-300 bg-white/[0.03] border border-white/[0.04] hover:border-white/[0.08]'
@@ -321,11 +321,11 @@ const Compete = () => {
                   {/* subtle top-edge gradient */}
                   <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="p-4 md:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
 
                       {/* ─ Contest Info ─ */}
-                      <div className="flex-1 min-w-[300px]">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-xl font-bold text-white">{contest.title}</h3>
                           {contest.contest_type === 'rated' && (
@@ -488,7 +488,7 @@ const Compete = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-14 grid md:grid-cols-3 gap-6"
+          className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6"
         >
           {[
             {

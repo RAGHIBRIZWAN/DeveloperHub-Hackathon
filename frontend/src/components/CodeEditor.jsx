@@ -174,8 +174,8 @@ const CodeEditor = ({
   return (
     <div className={`flex flex-col bg-gray-900 rounded-xl border border-gray-700 overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-gray-800 border-b border-gray-700">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* Language Selector */}
           {showLanguageSelector && (
             <select
@@ -205,7 +205,7 @@ const CodeEditor = ({
           {/* Copy Button */}
           <button
             onClick={handleCopy}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+            className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
             title="Copy code"
           >
             {copied ? <Check size={18} /> : <Copy size={18} />}
@@ -214,7 +214,7 @@ const CodeEditor = ({
           {/* Reset Button */}
           <button
             onClick={handleReset}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+            className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
             title="Reset code"
           >
             <RotateCcw size={18} />
@@ -223,7 +223,7 @@ const CodeEditor = ({
           {/* Fullscreen Button */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+            className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
             title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}

@@ -84,7 +84,7 @@ const Leaderboard = () => {
     <div className="relative min-h-screen">
       <PageBackground variant="compete" />
 
-      <div className="relative z-10 p-6 max-w-6xl mx-auto">
+      <div className="relative z-10 p-4 md:p-6 max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -112,7 +112,7 @@ const Leaderboard = () => {
           {/* Gradient glow border effect */}
           <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-indigo-500/50 via-violet-500/50 to-pink-500/50 blur-[1px]" />
           <div className="relative bg-white/[0.04] backdrop-blur-xl rounded-2xl p-8 border border-white/[0.06]">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500/30 to-violet-500/30 backdrop-blur-sm border border-white/[0.08] flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.2)]">
                   <User size={30} className="text-indigo-300" />
@@ -150,12 +150,12 @@ const Leaderboard = () => {
           className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.25)]"
         >
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-white/[0.03] border-b border-white/[0.06] text-slate-500 text-sm font-semibold uppercase tracking-wider">
+          <div className="grid grid-cols-8 md:grid-cols-12 gap-2 md:gap-4 px-4 md:px-6 py-3 md:py-4 bg-white/[0.03] border-b border-white/[0.06] text-slate-500 text-sm font-semibold uppercase tracking-wider">
             <div className="col-span-1 text-center">Rank</div>
             <div className="col-span-5">User</div>
             <div className="col-span-2 text-center">Rating</div>
-            <div className="col-span-2 text-center">Tier</div>
-            <div className="col-span-2 text-center">Contests</div>
+            <div className="col-span-2 text-center hidden md:block">Tier</div>
+            <div className="col-span-2 text-center hidden md:block">Contests</div>
           </div>
 
           {/* Table Body */}
@@ -174,7 +174,7 @@ const Leaderboard = () => {
                     key={entry.user_id}
                     variants={fadeUp}
                     whileHover={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
-                    className={`grid grid-cols-12 gap-4 px-6 py-4 items-center border-l-2 transition-all duration-300 ${
+                    className={`grid grid-cols-8 md:grid-cols-12 gap-2 md:gap-4 px-4 md:px-6 py-3 md:py-4 items-center border-l-2 transition-all duration-300 ${
                       isCurrentUser 
                         ? 'bg-indigo-500/[0.08] border-l-indigo-400 shadow-[inset_0_0_30px_rgba(99,102,241,0.06)]' 
                         : getRankRowStyle(rank)
@@ -202,13 +202,13 @@ const Leaderboard = () => {
                       </span>
                     </div>
                     
-                    <div className="col-span-2 text-center">
+                    <div className="col-span-2 text-center hidden md:block">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getTierGlow(entry.rating)} ${getTierColor(entry.rating)}`}>
                         {getTierName(entry.rating)}
                       </span>
                     </div>
                     
-                    <div className="col-span-2 text-center text-slate-400">
+                    <div className="col-span-2 text-center hidden md:block text-slate-400">
                       {entry.contests_participated || 0}
                     </div>
                   </motion.div>
@@ -223,7 +223,7 @@ const Leaderboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-8 grid grid-cols-5 gap-4"
+          className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4"
         >
           {[
             { name: 'Beginner', range: '0-1199', color: 'text-green-400', border: 'border-l-green-400', glow: 'hover:shadow-[0_0_20px_rgba(74,222,128,0.15)]' },

@@ -175,9 +175,11 @@ const AITutor = ({
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      className={`fixed bottom-4 right-4 z-50 bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden ${
-        isMinimized ? 'w-16 h-16' : 'w-96 h-[500px]'
-      } transition-all duration-300`}
+      className={`fixed z-50 bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${
+        isMinimized 
+          ? 'w-16 h-16 bottom-4 right-4' 
+          : 'bottom-0 right-0 w-full h-[85vh] sm:bottom-4 sm:right-4 sm:w-96 sm:h-[500px] sm:rounded-2xl rounded-t-2xl rounded-b-none'
+      }`}
     >
       {isMinimized ? (
         <button
@@ -220,7 +222,7 @@ const AITutor = ({
           </div>
 
           {/* Messages */}
-          <div className="flex-1 h-[360px] overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 h-[calc(85vh-120px)] sm:h-[360px] overflow-y-auto p-4 space-y-4">
             <AnimatePresence>
               {messages.map((message, index) => (
                 <motion.div

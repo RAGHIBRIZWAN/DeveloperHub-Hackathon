@@ -331,13 +331,13 @@ const Exam = () => {
     const passed = examResults.score >= examResults.passing_score;
     
     return (
-      <div className="min-h-screen bg-[#07080f] p-6">
+      <div className="min-h-screen bg-[#07080f] p-4 md:p-6">
         <div className="max-w-4xl mx-auto pt-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-10 shadow-2xl shadow-black/40 overflow-hidden"
+            className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 md:p-10 shadow-2xl shadow-black/40 overflow-hidden"
           >
             {/* Background glow */}
             <div className={`absolute -top-40 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[120px] opacity-20 ${passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
@@ -365,7 +365,7 @@ const Exam = () => {
               </div>
 
               {/* Score Cards */}
-              <div className="grid grid-cols-3 gap-3 mb-10">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
                 <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.06] rounded-xl p-5 text-center">
                   <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent mb-1">
                     {examResults.score}%
@@ -448,7 +448,7 @@ const Exam = () => {
               )}
 
               {/* Actions */}
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => navigate('/courses')}
                   className="flex-1 px-6 py-3.5 bg-white/[0.04] backdrop-blur-sm border border-white/[0.06] rounded-xl text-slate-300 hover:bg-white/[0.08] hover:text-white transition-all duration-300 font-medium"
@@ -475,12 +475,12 @@ const Exam = () => {
   const progressPercent = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#07080f] p-6">
+    <div className="min-h-screen bg-[#07080f] p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
 
         {/* Header Bar */}
-        <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 mb-5 shadow-xl shadow-black/20">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-4 md:p-5 mb-5 shadow-xl shadow-black/20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4">
             <div>
               <h1 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
                 {MODULE_NAMES[moduleId]} Exam
@@ -801,12 +801,12 @@ const Exam = () => {
           </button>
 
           {/* Question indicators */}
-          <div className="flex gap-1.5 flex-wrap justify-center">
+          <div className="flex gap-1.5 flex-wrap justify-center max-w-full overflow-x-auto">
             {questions.map((q, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentQuestionIndex(index)}
-                className={`w-9 h-9 rounded-xl font-medium text-sm transition-all duration-300 relative border ${
+                className={`w-8 h-8 md:w-9 md:h-9 rounded-xl font-medium text-xs md:text-sm transition-all duration-300 relative border flex-shrink-0 ${
                   index === currentQuestionIndex
                     ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow-lg shadow-violet-500/20'
                     : isQuestionAnswered(index)

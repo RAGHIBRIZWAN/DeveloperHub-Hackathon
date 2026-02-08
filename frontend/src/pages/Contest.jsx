@@ -45,6 +45,9 @@ const Contest = () => {
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [examEnded, setExamEnded] = useState(false);
   const [isDisqualified, setIsDisqualified] = useState(false);
+  
+  // Mobile panel switcher: 'problem' | 'code' | 'leaderboard'
+  const [mobilePanel, setMobilePanel] = useState('code');
 
   /* ── Fetch contest ── */
   const { data: contestData, isLoading, error: contestError } = useQuery({
@@ -248,7 +251,7 @@ const Contest = () => {
       {/* ── Proctoring Warning Banner ── */}
       {!examEnded && (
         <div className="relative overflow-hidden bg-gradient-to-r from-red-600/90 via-red-500/90 to-red-600/90
-          border-b border-red-400/20 text-white px-6 py-2 flex items-center justify-center gap-2
+          border-b border-red-400/20 text-white px-3 md:px-6 py-2 flex items-center justify-center gap-2
           shadow-[0_4px_30px_rgba(239,68,68,0.15)]">
           {/* animated scan line */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent
@@ -256,31 +259,31 @@ const Contest = () => {
               backgroundSize: '200% 100%',
               animation: 'shimmer 3s ease-in-out infinite',
             }} />
-          <AlertTriangle size={18} className="relative z-10" />
-          <span className="font-bold relative z-10 text-sm tracking-wide">EXAM MODE ACTIVE</span>
-          <span className="text-xs relative z-10 text-red-100">
-            — DO NOT switch tabs or minimize window. Violation = IMMEDIATE DISQUALIFICATION with 0 marks!
+          <AlertTriangle size={18} className="relative z-10 flex-shrink-0" />
+          <span className="font-bold relative z-10 text-xs md:text-sm tracking-wide">EXAM MODE</span>
+          <span className="text-xs relative z-10 text-red-100 hidden sm:inline">
+            — DO NOT switch tabs or minimize window. Violation = IMMEDIATE DISQUALIFICATION!
           </span>
         </div>
       )}
 
       {/* ── Header Bar ── */}
-      <div className="bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06] px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06] px-3 md:px-6 py-2 md:py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <button
               onClick={() => navigate('/compete')}
-              className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-400 hover:text-white
-                hover:bg-white/[0.08] transition-all"
+              className="p-1.5 md:p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-400 hover:text-white
+                hover:bg-white/[0.08] transition-all flex-shrink-0"
             >
               <ArrowLeft size={18} />
             </button>
-            <div>
-              <h1 className="text-lg font-bold text-white">{contest.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-slate-500">
+            <div className="min-w-0">
+              <h1 className="text-sm md:text-lg font-bold text-white truncate">{contest.title}</h1>
+              <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-slate-500">
                 <span className="flex items-center gap-1">
                   <Users size={13} />
-                  {contest.participant_count || 0} participants
+                  {contest.participant_count || 0}<span className="hidden sm:inline"> participants</span>
                 </span>
               </div>
             </div>
@@ -288,23 +291,73 @@ const Contest = () => {
 
           {/* Timer pill */}
           <div
-            className={`flex items-center gap-2.5 px-5 py-2 rounded-full border backdrop-blur-md transition-all duration-500
+            className={`flex items-center gap-1.5 md:gap-2.5 px-3 md:px-5 py-1.5 md:py-2 rounded-full border backdrop-blur-md transition-all duration-500 flex-shrink-0
               ${isLowTime
                 ? 'bg-red-500/10 border-red-400/20 text-red-400 shadow-[0_0_25px_rgba(239,68,68,0.15)]'
                 : 'bg-white/[0.04] border-white/[0.06] text-indigo-300'
               }`}
           >
-            <Clock size={16} className={isLowTime ? 'animate-pulse' : ''} />
-            <span className="font-mono text-lg font-bold tracking-wider">{formatTime(timeLeft)}</span>
+            <Clock size={14} className={isLowTime ? 'animate-pulse' : ''} />
+            <span className="font-mono text-sm md:text-lg font-bold tracking-wider">{formatTime(timeLeft)}</span>
           </div>
         </div>
       </div>
 
-      {/* ── Main Content ── */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Mobile Panel Switcher */}
+      <div className="flex md:hidden border-b border-white/[0.06] bg-white/[0.03]">
+        {/* Problem selector pills on mobile */}
+        <div className="flex items-center gap-1 px-2 py-1.5 border-r border-white/[0.06] overflow-x-auto">
+          {problems.map((problem, index) => {
+            const isActive = selectedProblem === index;
+            const isSolved = submissions[index]?.passed;
+            return (
+              <button
+                key={index}
+                onClick={() => setSelectedProblem(index)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-all flex-shrink-0
+                  ${isActive
+                    ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white'
+                    : isSolved
+                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                    : 'bg-white/[0.04] text-slate-400'
+                  }`}
+              >
+                {String.fromCharCode(65 + index)}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => setMobilePanel('problem')}
+          className={`flex-1 py-2.5 text-xs font-medium text-center transition-colors ${
+            mobilePanel === 'problem' ? 'text-white bg-white/[0.06] border-b-2 border-indigo-500' : 'text-slate-500'
+          }`}
+        >
+          Problem
+        </button>
+        <button
+          onClick={() => setMobilePanel('code')}
+          className={`flex-1 py-2.5 text-xs font-medium text-center transition-colors ${
+            mobilePanel === 'code' ? 'text-white bg-white/[0.06] border-b-2 border-indigo-500' : 'text-slate-500'
+          }`}
+        >
+          Code
+        </button>
+        <button
+          onClick={() => setMobilePanel('leaderboard')}
+          className={`flex-1 py-2.5 text-xs font-medium text-center transition-colors ${
+            mobilePanel === 'leaderboard' ? 'text-white bg-white/[0.06] border-b-2 border-amber-500' : 'text-slate-500'
+          }`}
+        >
+          Rank
+        </button>
+      </div>
 
-        {/* ── Problem Sidebar (A, B, C...) ── */}
-        <div className="w-16 bg-white/[0.02] border-r border-white/[0.06] flex flex-col items-center py-4 gap-2">
+      {/* ── Main Content ── */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+
+        {/* ── Problem Sidebar (A, B, C...) — desktop only ── */}
+        <div className="w-16 bg-white/[0.02] border-r border-white/[0.06] hidden md:flex flex-col items-center py-4 gap-2">
           {problems.map((problem, index) => {
             const isActive = selectedProblem === index;
             const isSolved = submissions[index]?.passed;
@@ -327,9 +380,9 @@ const Contest = () => {
         </div>
 
         {/* ── Problem Description Panel ── */}
-        <div className="w-1/3 border-r border-white/[0.06] overflow-auto bg-white/[0.01]">
+        <div className={`md:w-1/3 md:border-r border-white/[0.06] overflow-auto bg-white/[0.01] ${mobilePanel === 'problem' ? 'flex-1' : 'hidden'} md:block md:flex-none`}>
           {currentProblem && (
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               {/* Title */}
               <div className="flex items-center gap-2.5 mb-5">
                 <span className="text-2xl font-extrabold bg-gradient-to-b from-indigo-300 to-violet-400 bg-clip-text text-transparent">
@@ -399,9 +452,9 @@ const Contest = () => {
         </div>
 
         {/* ── Code Editor Panel ── */}
-        <div className="flex-1 flex flex-col">
+        <div className={`flex-col ${mobilePanel === 'code' ? 'flex flex-1' : 'hidden'} md:flex md:flex-1`}>
           {/* Editor toolbar */}
-          <div className="bg-white/[0.03] border-b border-white/[0.06] px-4 py-2 flex items-center justify-between">
+          <div className="bg-white/[0.03] border-b border-white/[0.06] px-3 md:px-4 py-2 flex items-center justify-between gap-2">
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
@@ -477,7 +530,7 @@ const Contest = () => {
         </div>
 
         {/* ── Leaderboard Panel ── */}
-        <div className="w-64 bg-white/[0.02] border-l border-white/[0.06] flex flex-col overflow-hidden">
+        <div className={`md:w-64 bg-white/[0.02] md:border-l border-white/[0.06] flex-col overflow-hidden ${mobilePanel === 'leaderboard' ? 'flex flex-1' : 'hidden'} md:flex md:flex-none`}>
           {/* Header */}
           <div className="p-4 border-b border-white/[0.06]">
             <h3 className="font-bold text-white flex items-center gap-2 text-sm">

@@ -202,7 +202,7 @@ const Lesson = () => {
         {/* Top gradient accent line */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
         
-        <div className="px-6 py-3.5 flex items-center justify-between">
+        <div className="px-3 md:px-6 py-2 md:py-3.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/courses')}
@@ -215,32 +215,32 @@ const Lesson = () => {
                 <BookOpen size={16} className="text-white" />
               </div>
               <div>
-                <h1 className="text-[15px] font-semibold text-white tracking-tight">{lesson.title}</h1>
+                <h1 className="text-sm md:text-[15px] font-semibold text-white tracking-tight truncate max-w-[150px] sm:max-w-none">{lesson.title}</h1>
                 {lesson.title_ur && (
                   <p className="text-slate-500 text-xs font-urdu">{lesson.title_ur}</p>
                 )}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
               <Sparkles size={13} className="text-amber-400" />
               <span className="text-amber-300 text-xs font-medium">+{lesson.xp_reward} XP</span>
             </div>
             <button
               onClick={handleCompleteLesson}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-[1.02]"
+              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white text-xs md:text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-[1.02]"
             >
-              <CheckCircle size={16} />
-              Complete Lesson
+              <CheckCircle size={14} />
+              <span className="hidden sm:inline">Complete</span> <span className="sm:hidden">Done</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Tab Navigation - glass pill style */}
-      <div className="relative bg-white/[0.02] border-b border-white/[0.06] px-6">
-        <div className="flex gap-1 py-2">
+      <div className="relative bg-white/[0.02] border-b border-white/[0.06] px-3 md:px-6">
+        <div className="flex gap-1 py-2 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -361,7 +361,7 @@ const Lesson = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="h-full flex"
+              className="h-full flex flex-col md:flex-row"
             >
               {/* Editor */}
               <div className="flex-1 flex flex-col">
@@ -400,7 +400,7 @@ const Lesson = () => {
               </div>
               
               {/* Output Panel */}
-              <div className="w-96 bg-white/[0.02] border-l border-white/[0.06] flex flex-col">
+              <div className="h-48 md:h-auto md:w-96 bg-white/[0.02] border-t md:border-t-0 md:border-l border-white/[0.06] flex flex-col">
                 <div className="bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06] px-4 py-2.5 flex items-center gap-2">
                   <Terminal size={14} className="text-slate-500" />
                   <span className="text-slate-400 text-xs font-medium tracking-wider uppercase">Output</span>

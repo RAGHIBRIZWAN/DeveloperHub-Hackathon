@@ -138,7 +138,7 @@ const Login = () => {
           {/* Top accent line */}
           <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
 
-          <div className="px-8 pt-10 pb-9">
+          <div className="px-5 sm:px-8 pt-10 pb-9">
             {/* Heading */}
             <motion.div variants={fadeUp} className="text-center mb-8">
               <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">

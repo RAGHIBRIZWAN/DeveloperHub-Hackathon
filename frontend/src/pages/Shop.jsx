@@ -91,12 +91,12 @@ const Shop = () => {
     <div className="relative min-h-screen">
       <PageBackground variant="shop" />
 
-      <div className="relative z-10 p-6 max-w-6xl mx-auto">
+      <div className="relative z-10 p-4 md:p-6 max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
         >
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -107,7 +107,7 @@ const Shop = () => {
                 {t('shop.title')}
               </span>
             </h1>
-            <p className="text-slate-500 mt-2 ml-14">{t('shop.subtitle')}</p>
+            <p className="text-slate-500 mt-2 sm:ml-14">{t('shop.subtitle')}</p>
           </div>
 
           {/* Coin Counter - Glass pill with gold glow */}
@@ -144,7 +144,7 @@ const Shop = () => {
               <div className="w-12 h-12 rounded-full border-2 border-violet-500/30 border-t-violet-400 animate-spin" />
             </div>
           ) : (
-            <motion.div variants={container} initial="hidden" animate="show" className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {themes.map((theme) => {
                 const isUnlocked = unlockedThemes.includes(theme.id);
                 const canAfford = coins >= theme.price;
@@ -250,7 +250,7 @@ const Shop = () => {
             </h2>
           </motion.div>
 
-          <motion.div variants={container} initial="hidden" animate="show" className="grid md:grid-cols-3 gap-6">
+          <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             {[
               {
                 id: 'xp_boost',
@@ -332,7 +332,7 @@ const Shop = () => {
             <h3 className="font-bold text-lg mb-5 bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 to-amber-400">
               💰 How to Earn Coins
             </h3>
-            <div className="grid md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { amount: '+10', label: 'Complete a lesson' },
                 { amount: '+25', label: 'Solve a challenge' },

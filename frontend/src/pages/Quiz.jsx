@@ -202,8 +202,8 @@ const Quiz = () => {
   /* ── No module selected ── */
   if (!moduleId) {
     return (
-      <div className="min-h-screen bg-[#07080f] flex items-center justify-center p-6">
-        <div className="text-center bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-10 shadow-2xl shadow-indigo-500/5">
+      <div className="min-h-screen bg-[#07080f] flex items-center justify-center p-4 md:p-6">
+        <div className="text-center bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 sm:p-10 shadow-2xl shadow-indigo-500/5">
           <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/20 flex items-center justify-center">
             <HelpCircle className="w-10 h-10 text-amber-400" />
           </div>
@@ -241,13 +241,13 @@ const Quiz = () => {
     const passed = percentage >= 60;
 
     return (
-      <div className="min-h-screen bg-[#07080f] p-6">
-        <div className="max-w-2xl mx-auto pt-8">
+      <div className="min-h-screen bg-[#07080f] p-4 md:p-6">
+        <div className="max-w-2xl mx-auto pt-4 sm:pt-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-10 text-center shadow-2xl shadow-black/40 overflow-hidden"
+            className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 sm:p-10 text-center shadow-2xl shadow-black/40 overflow-hidden"
           >
             {/* Decorative glow */}
             <div className={`absolute -top-32 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full blur-[100px] opacity-30 ${passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
@@ -268,7 +268,7 @@ const Quiz = () => {
               <h1 className="text-3xl font-bold text-white mb-1">Quiz Complete!</h1>
               <p className="text-slate-400 mb-8">{MODULE_NAMES[moduleId]}</p>
 
-              <div className="grid grid-cols-3 gap-3 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
                 <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.06] rounded-xl p-5">
                   <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">{percentage}%</div>
                   <div className="text-xs text-slate-500 mt-1 uppercase tracking-wider">Score</div>
@@ -294,7 +294,7 @@ const Quiz = () => {
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => navigate('/courses')}
                   className="flex-1 px-6 py-3.5 bg-white/[0.04] backdrop-blur-sm border border-white/[0.06] rounded-xl text-slate-300 hover:bg-white/[0.08] hover:text-white transition-all duration-300 font-medium"
@@ -318,7 +318,7 @@ const Quiz = () => {
 
   /* ── Main Quiz View ── */
   return (
-    <div className="min-h-screen bg-[#07080f] p-6">
+    <div className="min-h-screen bg-[#07080f] p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}
@@ -355,7 +355,7 @@ const Quiz = () => {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -30, scale: 0.98 }}
             transition={{ duration: 0.35 }}
-            className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-8 shadow-2xl shadow-black/30"
+            className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-4 sm:p-8 shadow-2xl shadow-black/30"
           >
             {/* Difficulty & Topic */}
             <div className="flex items-center gap-3 mb-6">
