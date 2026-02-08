@@ -280,9 +280,9 @@ const Dashboard = () => {
             delay={0.26}
           />
           <StatCard
-            icon={Clock}
-            value={`${progress.total_time_spent_minutes || 0}m`}
-            label="Time Spent"
+            icon={Flame}
+            value={currentStreak}
+            label="Day Streak"
             color="green"
             delay={0.34}
           />

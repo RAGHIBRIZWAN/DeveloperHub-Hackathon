@@ -63,7 +63,9 @@ const LANGUAGE_CONFIG = {
     name: 'Python',
     icon: '🐍',
     defaultCode: `# Read input
-n = int(input())
+import sys
+input_data = sys.stdin.read().split()
+n = int(input_data[0])
 
 # Your code here
 
@@ -91,12 +93,19 @@ int main() {
   javascript: {
     name: 'JavaScript',
     icon: '🌐',
-    defaultCode: `// Read input using readLine()
-const n = parseInt(readLine());
+    defaultCode: `// Read input from stdin
+process.stdin.resume();
+process.stdin.setEncoding('utf8');
+let inputData = '';
+process.stdin.on('data', (data) => { inputData += data; });
+process.stdin.on('end', () => {
+    const lines = inputData.trim().split('\\n');
+    const n = parseInt(lines[0]);
 
-// Your code here
+    // Your code here
 
-console.log(result);
+    console.log(result);
+});
 `,
   },
 };
