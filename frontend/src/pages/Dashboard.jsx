@@ -194,7 +194,7 @@ const Dashboard = () => {
       {/* ── Immersive background ── */}
       <PageBackground variant="dashboard" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 space-y-6 md:space-y-8 overflow-x-hidden">
 
         {/* ═══════════════════════════════════════════
             1. HERO WELCOME SECTION
@@ -203,7 +203,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="relative overflow-hidden rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06] p-8 md:p-10"
+          className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06] p-5 sm:p-8 md:p-10"
         >
           {/* gradient accent line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 opacity-80" />
@@ -212,37 +212,38 @@ const Dashboard = () => {
           <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
 
-          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
+          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+            <div className="space-y-2 min-w-0 flex-1">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <motion.div
                   animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 4 }}
+                  className="flex-shrink-0"
                 >
-                  <Sparkles className="text-yellow-400" size={28} />
+                  <Sparkles className="text-yellow-400" size={24} />
                 </motion.div>
-                <h1 className="text-3xl md:text-4xl font-extrabold">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold truncate">
                   <span className="bg-gradient-to-r from-white via-indigo-200 to-violet-300 bg-clip-text text-transparent">
                     Welcome back, {user?.full_name?.split(' ')[0] || user?.username}!
                   </span>
                 </h1>
               </div>
-              <p className="text-slate-400 text-lg max-w-xl">
+              <p className="text-slate-400 text-sm sm:text-base md:text-lg max-w-xl">
                 Ready to continue your coding journey? Let's build something amazing today.
               </p>
             </div>
 
             {/* Level & streak pills */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-xl">
-                <Star className="text-yellow-400" size={18} />
-                <span className="text-white font-bold text-lg">{level}</span>
-                <span className="text-slate-400 text-sm">Level</span>
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-xl">
+                <Star className="text-yellow-400 flex-shrink-0" size={16} />
+                <span className="text-white font-bold text-base sm:text-lg">{level}</span>
+                <span className="text-slate-400 text-xs sm:text-sm hidden sm:inline">Level</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-xl">
-                <Flame className="text-orange-400" size={18} />
-                <span className="text-white font-bold text-lg">{currentStreak}</span>
-                <span className="text-slate-400 text-sm">Streak</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-xl">
+                <Flame className="text-orange-400 flex-shrink-0" size={16} />
+                <span className="text-white font-bold text-base sm:text-lg">{currentStreak}</span>
+                <span className="text-slate-400 text-xs sm:text-sm hidden sm:inline">Streak</span>
               </div>
             </div>
           </div>
@@ -300,27 +301,27 @@ const Dashboard = () => {
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 opacity-80" />
           <div className="absolute -top-20 right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 transition-colors duration-700" />
 
-          <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4 p-6 md:p-8">
-            <div className="flex items-center gap-5">
+          <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4 p-5 sm:p-6 md:p-8">
+            <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
               <motion.div
                 animate={{ y: [0, -6, 0], rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0"
               >
-                <Gift size={28} className="text-white" />
+                <Gift size={24} className="text-white sm:w-7 sm:h-7" />
               </motion.div>
-              <div>
-                <h3 className="text-white font-bold text-lg">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-white font-bold text-base sm:text-lg truncate">
                   Daily Reward Available!
                 </h3>
-                <p className="text-slate-400 text-sm mt-0.5">
+                <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
                   Claim your daily coins and keep your streak going
                 </p>
               </div>
             </div>
             <button
               onClick={handleClaimDaily}
-              className="relative px-8 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm tracking-wide hover:shadow-[0_0_30px_rgba(245,158,11,0.35)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
+              className="relative px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs sm:text-sm tracking-wide hover:shadow-[0_0_30px_rgba(245,158,11,0.35)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] flex-shrink-0"
             >
               <span className="relative z-10 flex items-center gap-2">
                 <Sparkles size={16} />
@@ -333,11 +334,11 @@ const Dashboard = () => {
         {/* ═══════════════════════════════════════════
             4. QUICK ACTIONS + LEARNING MODULES (2-col)
         ═══════════════════════════════════════════ */}
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
 
           {/* ── Quick Actions ── */}
-          <motion.div variants={stagger} initial="hidden" animate="show">
-            <h2 className="text-xl font-bold mb-5">
+          <motion.div variants={stagger} initial="hidden" animate="show" className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-5">
               <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                 Quick Actions
               </span>
@@ -347,21 +348,21 @@ const Dashboard = () => {
                 <motion.div key={action.title} variants={fadeUp}>
                   <Link
                     to={action.link}
-                    className={`group flex items-center gap-4 p-4 rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-500 ${action.glow}`}
+                    className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-500 ${action.glow}`}
                   >
                     {/* icon container */}
-                    <div className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-lg`}>
-                      <action.icon size={22} className="text-white" />
+                    <div className={`relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                      <action.icon size={20} className="text-white sm:w-5.5 sm:h-5.5" />
                       {/* soft glow behind icon */}
-                      <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-40 blur-xl transition-opacity duration-500`} />
+                      <div className={`absolute inset-0 rounded-lg sm:rounded-xl bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-40 blur-xl transition-opacity duration-500`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold text-[0.95rem]">
+                      <h3 className="text-white font-semibold text-sm sm:text-[0.95rem] truncate">
                         {isUrdu ? action.titleUr : action.title}
                       </h3>
-                      <p className="text-slate-500 text-sm truncate">{action.description}</p>
+                      <p className="text-slate-500 text-xs sm:text-sm truncate">{action.description}</p>
                     </div>
-                    <ChevronRight className="text-white/20 group-hover:text-white/60 transition-colors duration-300 flex-shrink-0" size={18} />
+                    <ChevronRight className="text-white/20 group-hover:text-white/60 transition-colors duration-300 flex-shrink-0" size={16} />
                   </Link>
                 </motion.div>
               ))}
@@ -369,8 +370,8 @@ const Dashboard = () => {
           </motion.div>
 
           {/* ── Learning Modules ── */}
-          <motion.div variants={stagger} initial="hidden" animate="show">
-            <h2 className="text-xl font-bold mb-5">
+          <motion.div variants={stagger} initial="hidden" animate="show" className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-5">
               <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                 {isUrdu ? 'سیکھنے کے ماڈیولز' : 'Learning Modules'}
               </span>
@@ -382,24 +383,24 @@ const Dashboard = () => {
                   <motion.div key={module.id} variants={fadeUp}>
                     <Link
                       to={`/courses?module=${module.id}&mode=practice`}
-                      className="group flex items-center gap-4 p-4 rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,255,255,0.04)]"
+                      className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,255,255,0.04)]"
                     >
                       {/* module emoji icon */}
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${module.color} flex items-center justify-center text-2xl shadow-lg`}>
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br ${module.color} flex items-center justify-center text-xl sm:text-2xl shadow-lg flex-shrink-0`}>
                         {module.icon}
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-semibold text-[0.95rem] truncate">
+                        <h3 className="text-white font-semibold text-sm sm:text-[0.95rem] truncate">
                           {isUrdu ? module.name_ur : module.name}
                         </h3>
-                        <p className="text-slate-500 text-sm truncate">
+                        <p className="text-slate-500 text-xs sm:text-sm truncate">
                           {module.lessons} lessons • {module.description}
                         </p>
 
                         {/* gradient progress bar */}
-                        <div className="mt-2.5 flex items-center gap-3">
-                          <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div className="mt-2 sm:mt-2.5 flex items-center gap-2 sm:gap-3">
+                          <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden min-w-0">
                             <motion.div
                               className={`h-full rounded-full bg-gradient-to-r ${module.color}`}
                               initial={{ width: 0 }}
@@ -407,13 +408,13 @@ const Dashboard = () => {
                               transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
                             />
                           </div>
-                          <span className="text-xs font-medium text-slate-500 w-9 text-right">
+                          <span className="text-xs font-medium text-slate-500 w-8 sm:w-9 text-right flex-shrink-0">
                             {modProgress}%
                           </span>
                         </div>
                       </div>
 
-                      <ChevronRight className="text-white/20 group-hover:text-white/60 transition-colors duration-300 flex-shrink-0" size={18} />
+                      <ChevronRight className="text-white/20 group-hover:text-white/60 transition-colors duration-300 flex-shrink-0" size={16} />
                     </Link>
                   </motion.div>
                 );
@@ -429,25 +430,25 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="relative overflow-hidden rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06] p-6 md:p-8"
+          className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06] p-5 sm:p-6 md:p-8"
         >
           {/* accent line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 opacity-70" />
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
-            <div>
-              <h3 className="text-lg font-bold">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-5">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base sm:text-lg font-bold">
                 <span className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
                   Level Progress
                 </span>
               </h3>
-              <p className="text-slate-500 text-sm mt-0.5">
+              <p className="text-slate-500 text-xs sm:text-sm mt-0.5 truncate">
                 {xpToNextLevel - xp > 0 ? `${xpToNextLevel - xp} XP to Level ${level + 1}` : 'Max level reached!'}
               </p>
             </div>
-            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/15">
-              <Star className="text-indigo-400" size={18} />
-              <span className="text-indigo-300 font-bold text-sm tracking-wide">
+            <div className="flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-indigo-500/10 border border-indigo-500/15 flex-shrink-0">
+              <Star className="text-indigo-400" size={16} />
+              <span className="text-indigo-300 font-bold text-xs sm:text-sm tracking-wide">
                 Level {level}
               </span>
             </div>

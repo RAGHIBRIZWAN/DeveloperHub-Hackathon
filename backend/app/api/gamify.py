@@ -544,20 +544,25 @@ async def check_and_award_badges(current_user: dict = Depends(get_current_user))
 @router.get("/leaderboard/coins")
 async def get_coins_leaderboard(limit: int = 50):
     """
-    Get top users by coins earned.
+    Get top users by coins earned (excludes admin users).
     """
     rewards_list = await UserRewards.find().sort("-total_coins_earned").limit(limit).to_list()
     
     leaderboard = []
-    for i, r in enumerate(rewards_list):
+    rank = 1
+    for r in rewards_list:
         user = await User.get(r.user_id)
+        # Skip admin users
+        if user and user.role == "admin":
+            continue
         if user:
             leaderboard.append({
-                "rank": i + 1,
+                "rank": rank,
                 "username": user.username,
                 "full_name": user.full_name,
                 "total_coins_earned": r.total_coins_earned,
                 "level": user.level
             })
+            rank += 1
     
     return {"leaderboard": leaderboard}

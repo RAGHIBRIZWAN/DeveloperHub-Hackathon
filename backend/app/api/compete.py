@@ -499,12 +499,16 @@ async def get_contest_leaderboard(
     
     total = await ContestParticipation.find({"contest_id": contest_id, "is_disqualified": {"$ne": True}}).count()
     
-    # Get user details
+    # Get user details (exclude admin users from leaderboard)
     leaderboard = []
-    for i, p in enumerate(participations):
+    rank = skip + 1
+    for p in participations:
         user = await User.get(p.user_id)
+        # Skip admin users
+        if user and user.role == "admin":
+            continue
         leaderboard.append({
-            "rank": skip + i + 1,
+            "rank": rank,
             "user_id": p.user_id,
             "username": user.username if user else "Unknown",
             "total_points": p.total_points,
@@ -513,6 +517,7 @@ async def get_contest_leaderboard(
             "rating": user.rating if user else 0,
             "rating_change": p.rating_change
         })
+        rank += 1
     
     return {
         "leaderboard": leaderboard,
@@ -528,14 +533,14 @@ async def get_global_leaderboard(
     limit: int = Query(50, ge=1, le=100)
 ):
     """
-    Get global rating leaderboard.
+    Get global rating leaderboard (excludes admin users).
     """
     skip = (page - 1) * limit
     users = await User.find(
-        {"is_active": True}
+        {"is_active": True, "role": {"$ne": "admin"}}
     ).sort("-rating").skip(skip).limit(limit).to_list()
     
-    total = await User.find({"is_active": True}).count()
+    total = await User.find({"is_active": True, "role": {"$ne": "admin"}}).count()
     
     return {
         "leaderboard": [

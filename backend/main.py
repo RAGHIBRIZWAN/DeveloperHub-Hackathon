@@ -232,7 +232,10 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://codehubai.vercel.app"  # <-- Your frontend URL
+        "http://localhost:5173",         # Local Vite dev server
+        "http://localhost:3000",         # Alternate local dev
+        "http://127.0.0.1:5173",        # Localhost alias
+        "https://codehubai.vercel.app",  # Production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Needed to handle OPTIONS preflight
