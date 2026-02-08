@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import { aiAPI } from '../services/api';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import toast from 'react-hot-toast';
 
 /* ── Module config ─────────────────────────────────── */
@@ -113,14 +116,99 @@ export default function LearnLesson() {
                 prose-p:text-white/80 prose-p:leading-relaxed
                 prose-strong:text-white
                 prose-code:text-indigo-300 prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-                prose-pre:bg-[#12121a] prose-pre:border prose-pre:border-white/5 prose-pre:rounded-xl
+                prose-pre:bg-transparent prose-pre:p-0 prose-pre:border-0
                 prose-table:border-collapse
                 prose-th:bg-white/5 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-white/70
                 prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-white/5 prose-td:text-white/60
                 prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline
-                prose-li:text-white/70"
+                prose-li:text-white/70
+                prose-blockquote:border-l-indigo-500 prose-blockquote:bg-indigo-500/5 prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4
+                prose-hr:border-white/10"
             >
-              <ReactMarkdown>{lessonContent.content}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ node, inline, className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    return !inline && match ? (
+                      <div className="relative group rounded-xl overflow-hidden border border-white/[0.06] bg-[#1e1e2e] my-4">
+                        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+                        <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] bg-white/[0.02]">
+                          <span className="text-[11px] font-mono text-white/30 uppercase tracking-wider">{match[1]}</span>
+                        </div>
+                        <SyntaxHighlighter
+                          style={vscDarkPlus}
+                          language={match[1]}
+                          PreTag="div"
+                          customStyle={{
+                            background: 'transparent',
+                            margin: 0,
+                            padding: '1rem 1.25rem',
+                            fontSize: '0.875rem',
+                            lineHeight: '1.7',
+                          }}
+                          {...props}
+                        >
+                          {String(children).replace(/\n$/, '')}
+                        </SyntaxHighlighter>
+                      </div>
+                    ) : (
+                      <code className="text-indigo-300 bg-white/[0.06] px-1.5 py-0.5 rounded-md text-sm font-mono" {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  table({ children }) {
+                    return (
+                      <div className="overflow-x-auto my-4 rounded-xl border border-white/[0.06]">
+                        <table className="w-full text-sm">{children}</table>
+                      </div>
+                    );
+                  },
+                  thead({ children }) {
+                    return <thead className="bg-white/[0.04] border-b border-white/[0.06]">{children}</thead>;
+                  },
+                  th({ children }) {
+                    return <th className="px-4 py-2.5 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">{children}</th>;
+                  },
+                  td({ children }) {
+                    return <td className="px-4 py-2.5 text-white/60 border-t border-white/[0.04]">{children}</td>;
+                  },
+                  blockquote({ children }) {
+                    return (
+                      <blockquote className="border-l-2 border-indigo-500 bg-indigo-500/[0.05] rounded-r-lg py-2 px-4 my-4 text-white/70 not-prose">
+                        {children}
+                      </blockquote>
+                    );
+                  },
+                  h1({ children }) {
+                    return <h1 className="text-2xl font-bold text-white mt-2 mb-4 pb-2 border-b border-white/10">{children}</h1>;
+                  },
+                  h2({ children }) {
+                    return <h2 className="text-xl font-semibold text-white mt-8 mb-3 flex items-center gap-2"><span className="w-1 h-5 bg-indigo-500 rounded-full inline-block"></span>{children}</h2>;
+                  },
+                  h3({ children }) {
+                    return <h3 className="text-lg font-medium text-white/90 mt-6 mb-2">{children}</h3>;
+                  },
+                  ul({ children }) {
+                    return <ul className="list-disc list-inside space-y-1 text-white/70 my-2">{children}</ul>;
+                  },
+                  ol({ children }) {
+                    return <ol className="list-decimal list-inside space-y-1 text-white/70 my-2">{children}</ol>;
+                  },
+                  p({ children }) {
+                    return <p className="text-white/80 leading-relaxed my-2">{children}</p>;
+                  },
+                  strong({ children }) {
+                    return <strong className="text-white font-semibold">{children}</strong>;
+                  },
+                  hr() {
+                    return <hr className="border-white/10 my-6" />;
+                  },
+                }}
+              >
+                {lessonContent.content}
+              </ReactMarkdown>
             </motion.div>
           ) : null}
         </div>
