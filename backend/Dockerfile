@@ -30,7 +30,7 @@
 # # Start command
 # CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-FROM python:3.11-slim
+FROM python:3.11
 
 WORKDIR /app
 
@@ -54,6 +54,8 @@ RUN apt-get update && apt-get install -y \
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
+
 # Upgrade pip
 RUN pip install --upgrade pip setuptools wheel
 
@@ -61,10 +63,12 @@ RUN pip install --upgrade pip setuptools wheel
 COPY requirements.txt .
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --no-build-isolation -r requirements.txt 
 
 # Copy code
 COPY . .
+
+RUN pip install openai-whisper
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser
