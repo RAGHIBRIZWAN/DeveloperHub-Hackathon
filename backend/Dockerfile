@@ -34,14 +34,14 @@ FROM python:3.11
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies required for whisper, torch, and builds
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     build-essential \
     ffmpeg \
-    curl \
     git \
+    curl \
     libffi-dev \
     libssl-dev \
     python3-dev \
@@ -50,29 +50,28 @@ RUN apt-get update && apt-get install -y \
     npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Rust (required for whisper)
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
-
-# Upgrade pip
+# Upgrade pip and build tools FIRST (critical)
 RUN pip install --upgrade pip setuptools wheel
+
+# Install torch FIRST (whisper dependency)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 # Copy requirements
 COPY requirements.txt .
 
-# Install dependencies
-RUN pip install --no-cache-dir --no-build-isolation -r requirements.txt 
+# Install requirements (DO NOT include openai-whisper here)
+RUN pip install --no-cache-dir --no-build-isolation -r requirements.txt
 
-# Copy code
+# Install whisper separately (prevents metadata build crash)
+RUN pip install --no-cache-dir openai-whisper
+
+# Copy application code
 COPY . .
 
-RUN pip install openai-whisper
-
 # Create non-root user
-RUN adduser --disabled-password --gecos '' appuser
-RUN chown -R appuser:appuser /app
+RUN adduser --disabled-password --gecos '' appuser \
+    && chown -R appuser:appuser /app
+
 USER appuser
 
 EXPOSE 8000
